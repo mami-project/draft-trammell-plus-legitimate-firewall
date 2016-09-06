@@ -31,8 +31,6 @@ author:
 
 
 informative:
-  I-D.kuehlewind-plus-problem-statement:
-  I-D.trammell-plus-abstract-mech:
 
 --- abstract
 
