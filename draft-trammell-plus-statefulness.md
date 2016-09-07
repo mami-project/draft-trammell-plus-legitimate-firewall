@@ -1,7 +1,7 @@
 ---
-title: Transport-Independent Firewall State Management using PLUS
-abbrev: PLUS Firewall Support
-docname: draft-trammell-plus-legitimate-firewall
+title: Transport-Independent Path Layer State Management using PLUS
+abbrev: PLUS Statefulness
+docname: draft-trammell-plus-statefulness
 date: 2016-09-12
 category: info
 
