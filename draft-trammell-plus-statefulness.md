@@ -1,5 +1,5 @@
 ---
-title: Transport-Independent Path Layer State Management using PLUS
+title: Transport-Independent Path Layer State Management
 abbrev: PLUS Statefulness
 docname: draft-trammell-plus-statefulness
 date: 2016-09-12
@@ -34,7 +34,9 @@ informative:
 
 --- abstract
 
-This document currently describes a simple state machine for stateful network devices. This state machine is used to determine the input signals that would need to be provided by an protocol that assotiates packets to a common flow.
+This document currently describes a simple state machine for stateful network
+devices. This state machine is used to determine the input signals that would
+need to be provided by an protocol that assotiates packets to a common flow.
 
 --- middle
 
@@ -47,11 +49,11 @@ This document currently describes a simple state machine for stateful network de
 ~~~~~~~~~~~~~
  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 '   ---------   pkt   ---------   '
-'   |  no   |-------->| flow  |   '
-'   | state |<--------|       |   '
-'_ _---------_t1/stop_---------_ _'
-     ^    ^                |
-   t1|    |___________     | reverse pkt
+'   | init  |-------->| flow  |   '
+'   |       |<--------|       |   '
+'   --------- t1/stop ---------   '
+'_ _ ^ _ _^_ _ _ _ _ _ _ _ | _ _ _'
+   t1|    |___________     | rev pkt
      |       t2/stop  |    v
    -----------       ------------
    | closing |<------|  biflow  |
@@ -59,9 +61,36 @@ This document currently describes a simple state machine for stateful network de
     
 ~~~~~~~~~~~~~
 
-When a stateful network devices receives the first packet of a flow that is does not have state for (in "no state" state), it will transits in the "flow" state and set a time t1. Every time a new packet arrives that belongs to the same uniflow, t1 is reset. Only if a packet is recieved that is identified to belong to the associated reverse flow, the network device will transition into "biflow" state and use a larger time t2 instead. If an explicit stop signal is received from one of the bi-flows (from any of the endpoints), this indicates that the network device can remove state information for this biflow. If the network device can determine that all sent packets have successfully traversed, e.g. based on sequence numbers, it can directly move to the "no state" state and remove all state information on this flow. Otherwise it should move into a "closing" state and again set a shorter timer t1 (could even be t3>t1) for each received packet. Again, if additional information such as a sequence number is available to determine if all packets have traversed the network device, it might also directly go over in the "no state" state from "closing" after the last packet that e.g. could have been delayed to after the stop signal due to re-ordering. Otherwise, whenever a timer expire,s the network device will remove all state information for this flow and move to the "no state" state. 
+[EDITOR'S NOTE: the reverse flow is called a "consent flow". consent flow must
+at least be medium-assurance of implementation and on-path-ness. consent token
+is derived from forward token.]
 
-This state machine is especially considered for stateful network devices that will drop packet in the "flow" state. Other network functions that do not require biflow information, might only implement the "no state" and "flow" states and only use a short timer that will be refreshed for all packets received. Depending on the timer configuration these devices might utilize the stop signal or not.
+When a stateful network devices receives the first packet of a flow that is
+does not have state for (in "no state" state), it will transits in the "flow"
+state and set a time t1. Every time a new packet arrives that belongs to the
+same uniflow, t1 is reset. Only if a packet is recieved that is identified to
+belong to the associated reverse flow, the network device will transition into
+"biflow" state and use a larger time t2 instead. If an explicit stop signal is
+received from one of the bi-flows (from any of the endpoints), this indicates
+that the network device can remove state information for this biflow. If the
+network device can determine that all sent packets have successfully
+traversed, e.g. based on sequence numbers, it can directly move to the "no
+state" state and remove all state information on this flow. Otherwise it
+should move into a "closing" state and again set a shorter timer t1 (could
+even be t3>t1) for each received packet. Again, if additional information such
+as a sequence number is available to determine if all packets have traversed
+the network device, it might also directly go over in the "no state" state
+from "closing" after the last packet that e.g. could have been delayed to
+after the stop signal due to re-ordering. Otherwise, whenever a timer expire,s
+the network device will remove all state information for this flow and move to
+the "no state" state.
+
+This state machine is especially considered for stateful network devices that
+will drop packet in the "flow" state. Other network functions that do not
+require biflow information, might only implement the "no state" and "flow"
+states and only use a short timer that will be refreshed for all packets
+received. Depending on the timer configuration these devices might utilize the
+stop signal or not.
 
 # Abstract Signaling Mechanisms
 
