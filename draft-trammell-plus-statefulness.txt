@@ -1,0 +1,616 @@
+
+
+
+
+Network Working Group                                      M. Kuehlewind
+Internet-Draft                                               B. Trammell
+Intended status: Informational                                ETH Zurich
+Expires: April 6, 2017                                     J. Hildebrand
+                                                        October 03, 2016
+
+
+           Transport-Independent Path Layer State Management
+                  draft-trammell-plus-statefulness-00
+
+Abstract
+
+   This document describes a simple state machine for stateful network
+   devices on a path between two endpoints to associate state with
+   traffic traversing them on a per-flow basis, as well as abstract
+   signaling mechanisms for driving the state machine.  This state
+   machine is intended to replace the de-facto use of the TCP state
+   machine or degenerate forms thereof by stateful network devices in a
+   transport-independent way, while still allowing for fast state
+   timeout of non-established or undesirable flows.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at http://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on April 6, 2017.
+
+Copyright Notice
+
+   Copyright (c) 2016 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents
+   (http://trustee.ietf.org/license-info) in effect on the date of
+   publication of this document.  Please review these documents
+   carefully, as they describe your rights and restrictions with respect
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                 [Page 1]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+   to this document.  Code Components extracted from this document must
+   include Simplified BSD License text as described in Section 4.e of
+   the Trust Legal Provisions and are provided without warranty as
+   described in the Simplified BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+   2.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   3
+   3.  State Machine . . . . . . . . . . . . . . . . . . . . . . . .   4
+   4.  Abstract Signaling Mechanisms . . . . . . . . . . . . . . . .   6
+     4.1.  Consent Signaling . . . . . . . . . . . . . . . . . . . .   6
+     4.2.  Stop Signaling  . . . . . . . . . . . . . . . . . . . . .   8
+     4.3.  Timeout Exposure  . . . . . . . . . . . . . . . . . . . .   8
+     4.4.  Signal mapping for TCP  . . . . . . . . . . . . . . . . .   8
+   5.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   9
+   6.  Security Considerations . . . . . . . . . . . . . . . . . . .   9
+   7.  Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .   9
+   8.  References  . . . . . . . . . . . . . . . . . . . . . . . . .   9
+     8.1.  Normative References  . . . . . . . . . . . . . . . . . .   9
+     8.2.  Informative References  . . . . . . . . . . . . . . . . .  10
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  10
+
+1.  Introduction
+
+   The boundary between the network and transport layers was originally
+   defined to be that between information used (and potentially
+   modified) hop-by-hop, and that used end-to-end.  End-to-end
+   information in the transport layer is associated with state at the
+   endpoints, but processing of network-layer information was assumed to
+   be stateless.
+
+   The widespread deployment of stateful middleboxes in the Internet,
+   such as network address and port translators (NAPT), firewalls that
+   model the TCP state machine to distinguish packets belonging from
+   desirable flows from backscatter and random attack traffic, and
+   devices which keep per-flow state for reporting and monitoring
+   purposes (e.g.  IPFIX [RFC7011] Metering Processes), has broken this
+   assumption, and made it more difficult to deploy non-TCP transport
+   protocols in the Internet.
+
+   The deployment of new transport protocols encapsulated in UDP with
+   encrypted transport headers (such as QUIC
+   [I-D.hamilton-quic-transport-protocol]) will present a challenge to
+   the operation of these devices, and their ubquity likewise threatens
+   to impair the deployability of these protocols.  There are two main
+   causes for this problem: first, stateful devices often use an
+   internal model of the TCP state machine to determine when TCP flows
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                 [Page 2]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+   start and end, allowing them to manage state for these flows; for UDP
+   flows, they must rely on timeouts.  These timeouts are generally
+   short relative to those for TCP [IMC-GATEWAYS], requiring UDP-
+   encapsulated transports either to generate unproductive keepalive
+   traffic for long-lived sessions, or to tolerate connectivity problems
+   and the necessity of reconnection due to loss of on-path state.
+
+   This document presents a solution to this problem by defining a state
+   machine that is transport independent to be implemented at per-flow
+   state-keeping middleboxes as a replacement for degenerate TCP state
+   modeling.  Middleboxes implementing this state machine using signals
+   from a common UDP encapsulation layer can have equivalent necessary
+   state information to that provided by TCP, reducing the friction
+   between middleboxes and these new transport protocols.
+
+2.  Terminology
+
+   In this document, the term "flow" is defined to be compatible with
+   the definition given in [RFC7011]: A flow is defined as a set of
+   packets passing a device on the network during a certain time
+   interval.  All packets belonging to a particular Flow have a set of
+   common properties.  Each property is defined as the result of
+   applying a function to the values of:
+
+   1.  one or more network layer header fields (e.g., destination IP
+       address) or transport layer header fields (e.g., destination port
+       number) that the device has access to;
+
+   2.  one or more characteristics of the packet itself (e.g., number of
+       MPLS labels, etc.);
+
+   3.  one or more of the fields derived from packet treatment at the
+       device (e.g., next-hop IP address, the output interface, etc.).
+
+   A packet is defined as belonging to a flow if it completely satisfies
+   all the defined properties of the flow.  In general, the set of
+   properties on deployed devices includes the source and destination IP
+   address, the source and destination transport layer port number, the
+   transport protocol number.  The differentiated services field
+   [RFC2474] may also be included in the set of properties defining a
+   flow.
+
+   A bidirectional flow or biflow is defined as compatible with
+   [RFC5103], by joining the "forward direction" flow with the "reverse
+   direction" flow, derived by reversing the direction of directional
+   fields (ports and IP addresses).  Biflows are only relevant at
+   devices positioned so as to see all the packets in both directions of
+   the biflow, generally on the endpoint side of the service demarcation
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                 [Page 3]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+   point for either endpoint as defined in the reference path given in
+   [RFC7398].
+
+3.  State Machine
+
+   The transport-independent state machine for on-path devices is shown
+   in Figure 1.  It relies on four states, three configurable timeouts,
+   and a set of signals defined in Section 4.  The states are defined as
+   follows:
+
+   o  zero: there is no state for a given flow at the device
+
+   o  uniflow: a packet has been seen in one direction; state will be
+      kept at the device until it is explicitly cancelled or until
+      timeout t1 elapses without a packet.
+
+   o  biflow: a packet has been seen in one direction and an indication
+      of consent has been seen in the opposite direction; state will be
+      kept at the device until it is explicitly cancelled or until
+      timeout t2 elapses without a packet.
+
+   o  closing: an established biflow is shutting down due to an explicit
+      close indication; state will be kept at the device until timeout
+      t3 elapses.
+
+   t1 is the unidirectional idle timeout.  It can be considered
+   equivalent to the idle timeout for transport protocols where the
+   device has no information about session start and end (e.g. most UDP
+   protocols). t2 is the bidirectional idle timeout.  It can be
+   considered equivalent to the timeout for transport protocols where
+   the device has information about session start and end (e.g.  TCP).
+   t3 is the closing timeout: how long the device will wait for
+   reordered packets after a stop signal.  Selection of timeouts is a
+   configuration and implementation detail, but generally t3 <= t1 < t2.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                 [Page 4]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+     '                                         '
+     '    +----+   packet    +-----+           '
+     '   /      \---------->/       \----+     '  UNIFLOW
+     '  (  zero  )         ( uniflow )  packet '  ONLY
+     '   \      /<----------\       /<---+     '  STATES
+     '    +----+   t1,stop   +-----+           '
+     '_ _ _ ^_^ _ _ _ _ _ _ _ _ | _ _ _ _ _ _ _'
+         t3 |  \                | consent
+            |   \__________     v
+          +-----+     t2   \  +----+
+         /       \   stop   \/      \----+
+        ( closing )<--------( biflow ) any-packet
+         \       /           \      /<---+
+          +-----+             +----+
+
+
+    Figure 1: Transport-Independent State Machine for Stateful On-Path
+                                  Devices
+
+   When a packet is received for a flow that the device has no state
+   for, and it is configured to forward the packet instead of dropping
+   it, it moves that flow from the zero state into the uniflow state and
+   starts a timer t1.  It resets this timer for any additional packet it
+   forwards in the same direction as long as the flow remains in the
+   uniflow state.  When timer t1 expires, or when a stop signal is
+   observed, the device drops state for the flow and performs any
+   processing associated with doing so: tearing down NAT bindings,
+   closing associated firewall pinholes, exporting flow information, and
+   so on.  Note that devices that see only a single direction of a flow
+   only have these two states and the transitions between them.
+
+   A uniflow becomes a biflow when the device observes a consent signal.
+   A consent packet is a packet sent in the opposite direction from the
+   packet sent with certain properties as defined in Section 4.1.  After
+   transitioning to the biflow state, the device starts a timer t2.  It
+   resets this timer for any packet it forwards in either direction.
+   The biflow state represents a fully established bidirectional
+   communication.  When timer t2 expires, the device assumes that the
+   flow has shut down without signaling as such, and drops state for the
+   flow, performing any associated processing.  When a stop signal is
+   observed in either direction, the flow transitions to the closing
+   state.
+
+   When a flow enters the closing state, it starts a timer t3.  When
+   this timer expires, the device drops state for the flow, performing
+   any associated processing.
+
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                 [Page 5]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+   Devices may augment the transitions in this state diagram depending
+   on their function.  For example, a firewall that decides based on
+   some information beyond the signals used by this state machine to
+   shut down a flow may transition it directly to a blacklist state on
+   shutdown.  This document is concerned only with states and
+   transitions common to transport- and function- independent state
+   maintenance.
+
+4.  Abstract Signaling Mechanisms
+
+   The state machine in Section 3 requires three signals: a packet (the
+   first packet observed in a flow in the zero state), a consent signal
+   (allowing a device to verify that an endpoint wishes a bidirectional
+   communication to be established or to continue), and a stop signal
+   (noting that an endpoint wishes to stop a bidirectional
+   communication).  Additional related signals may also be useful,
+   depending on the function a device provides.  There are a few
+   different ways to implement these signals; here, we explore the
+   properties of some potential implementations.
+
+   We assume the following general requirements for these signals;
+   parallel to those given in [draft-trammell-plus-abstract-mech]:
+
+   o  At least the endpoints can verify the integrity of the signals
+      exposed, and shut down a transport association when that
+      verification fails, in order to reduce the incentive for on-path
+      devices to attempt to spoof these signals.
+
+   o  Endpoints and devices on path can probabilistically verify that a
+      originator of a signal is on-path.
+
+4.1.  Consent Signaling
+
+   A consent signal indicates that endpoint that received the first
+   packet seen by the device is interested in continuing conversation
+   with the sending endpoint.  In TCP, the consent signal corresponding
+   to a first packet with the SYN flag set is a SYN-ACK packet sent in
+   reply with an appropriate acknowledgment number.  However, a
+   transport-independent signal cannot rely on TCP-specific header
+   fields.
+
+   Transport-independent, path-verifiable consent signaling can be
+   implemented using a association token generated by one endpoint,
+   present on each packet sent in the flow by that endpoint, and a
+   response token, derived from the association token using a well-
+   known, defined function, present on each packet sent in the flow by
+   the opposite endpoint.  We can assume a transport association has an
+   initiator and a responder; under this assumption, the association
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                 [Page 6]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+   token is chosen by the initiator, and the response token generated by
+   the responder.
+
+   Any packet sent by the responder with a valid response token, and
+   without a stop signal (see Section 4.2), can then be taken to be a
+   consent signal to continue a bidirectional communication.  Note that,
+   since it relies on a widely-known function, this mechanism does allow
+   on-path devices to forge consent signaling in a way that downstream
+   on-path devices cannot detect.  However, in the presence of end-to-
+   end signal integrity verification, this forgery will be detected by
+   the endpoint, which MUST terminate the association on a forged
+   consent signal; the flow at the duped on-path device will transition
+   from biflow to closing within a single packet.  This reduces any
+   attack against the consent signaling mechanism to the disruption of a
+   connection, which on-path devices can do in any case by simply
+   refusing to forward packets.
+
+   Association tokens MUST be chosen by initiators to be hard to guess.
+   Cryptographic random number generators suffice here.  Note there is a
+   tradeoff between per-packet overhead and state overhead at on-path
+   devices, and assurance that an association token is hard to guess.
+   This tradeoff must be evaluated at protocol design time.
+
+   There are a few considerations in choosing a function (or functions)
+   to generate the response token from the association token, and to
+   verify a response token given an association token.
+
+   o  Is the function symmetric (that is, do on-path devices do the same
+      processing to verify a response token as the responder does to
+      generate it), or asymmetric (where different processing is used
+      on-path than at the responder)?
+
+   o  If the function is asymmetric, is there only a single valid
+      response token for each association token, or multiple valid
+      response tokens?
+
+   o  If the function is asymmetric, the verification process should be
+      computationally as complex or less complex than the generation
+      process.
+
+   o  Is the function one-way or two-way?  For one-way functions, it is
+      difficult to generate an association token from a valid response
+      token; for two-way functions, this difficulty does not exist.
+      Using a two-way function may make it simpler to design on-path
+      devices with reduced per-flow state requirements.
+
+
+
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                 [Page 7]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+4.2.  Stop Signaling
+
+   A stop signal is a single bit directly carried or otherwise encoded
+   in the protocol header to indicate that a flow is ending, whether
+   normally or abnormally, and that state associated with the flow
+   should be torn down.  Upon decoding a stop signal, a device on path
+   should move the flow from uniflow state to null, or from biflow state
+   to closing.
+
+   Transports should send a stop signal only on the last packet sent in
+   a bidirectional flow.  The closing timeout t3 is intended to ensure
+   that any packets reordered in delivery are accounted to the flow
+   before state for it is dropped.
+
+   We assume the encoding of a stop signal into a packet header, as with
+   all other signals, is integrity protected end-to-end.  Stop signals,
+   as consent signals, be forged by one on-path device to dupe other
+   devices into moving flows into the closing state.  However, state
+   will be re-established by the continuing flow (and resulting consent
+   signals) after the closing timeout, and an endpoint receiving a
+   spoofed stop signal could enter a fast re- establishment phase of the
+   upper layer transport protocol to minimize disruption, further
+   reducing the incentive to attackers to spoof stop signals.
+
+4.3.  Timeout Exposure
+
+   Since one of the goals of these mechanisms is to reduce the amount of
+   non- productive keepalive traffic required for UDP-encapsulated
+   transport protocols, they MAY be deployed together with a path-to-
+   receiver signal with feedback as defined in
+   [draft-trammell-plus-abstract-mech] asking for timeouts t1, t2, and
+   t3 for a given flow.
+
+4.4.  Signal mapping for TCP
+
+   A mapping of TCP flags to transitions in to the state machine in
+   {{state- machine}} shows how devices currently using a model of the
+   TCP state machine can be converted to use this state machine.
+
+   Simply speaking, the ACK flag [RFC0793] in the absence of the FIN or
+   RST flags is synonymous with the consent signal, while the RST or
+   final FIN flags are stop signals.  For a typical TCP flow:
+
+   1.  The initial SYN places the flow into uniflow state,
+
+   2.  The SYN-ACK sent in reply acts as a consent signal and places the
+       flow into biflow state,
+
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                 [Page 8]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+   3.  Any RST moves the flow into closing state, or
+
+   4.  The final FIN-ACK (not the first half-close FIN) moves the flow
+       into closing state.
+
+5.  IANA Considerations
+
+   This document has no actions for IANA.
+
+6.  Security Considerations
+
+   [EDITOR'S NOTE: reiterate why endpoint integrity protection is
+   sufficient]
+
+7.  Acknowledgments
+
+   Thanks to Christian Huitema for discussions leading to this document.
+
+   This work is partially supported by the European Commission under
+   Horizon 2020 grant agreement no. 688421 Measurement and Architecture
+   for a Middleboxed Internet (MAMI), and by the Swiss State Secretariat
+   for Education, Research, and Innovation under contract no. 15.0268.
+   This support does not imply endorsement.
+
+8.  References
+
+8.1.  Normative References
+
+   [RFC5103]  Trammell, B. and E. Boschi, "Bidirectional Flow Export
+              Using IP Flow Information Export (IPFIX)", RFC 5103,
+              DOI 10.17487/RFC5103, January 2008,
+              <http://www.rfc-editor.org/info/rfc5103>.
+
+   [RFC7011]  Claise, B., Ed., Trammell, B., Ed., and P. Aitken,
+              "Specification of the IP Flow Information Export (IPFIX)
+              Protocol for the Exchange of Flow Information", STD 77,
+              RFC 7011, DOI 10.17487/RFC7011, September 2013,
+              <http://www.rfc-editor.org/info/rfc7011>.
+
+   [RFC7398]  Bagnulo, M., Burbridge, T., Crawford, S., Eardley, P., and
+              A. Morton, "A Reference Path and Measurement Points for
+              Large-Scale Measurement of Broadband Performance",
+              RFC 7398, DOI 10.17487/RFC7398, February 2015,
+              <http://www.rfc-editor.org/info/rfc7398>.
+
+
+
+
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                 [Page 9]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+8.2.  Informative References
+
+   [draft-trammell-plus-abstract-mech]
+              Trammell, B., "Abstract Mechanisms for a Cooperative Path
+              Layer under Endpoint Control", September 2016.
+
+   [I-D.hamilton-quic-transport-protocol]
+              Hamilton, R., Iyengar, J., Swett, I., and A. Wilk, "QUIC:
+              A UDP-Based Multiplexed and Secure Transport", draft-
+              hamilton-quic-transport-protocol-00 (work in progress),
+              July 2016.
+
+   [IMC-GATEWAYS]
+              Hatonen, S., Nyrhinen, A., Eggert, L., Strowes, S.,
+              Sarolahti, P., and M. Kojo, "An experimental study of home
+              gateway characteristics (Proc. ACM IMC 2010)", n.d..
+
+   [RFC0793]  Postel, J., "Transmission Control Protocol", STD 7,
+              RFC 793, DOI 10.17487/RFC0793, September 1981,
+              <http://www.rfc-editor.org/info/rfc793>.
+
+   [RFC2474]  Nichols, K., Blake, S., Baker, F., and D. Black,
+              "Definition of the Differentiated Services Field (DS
+              Field) in the IPv4 and IPv6 Headers", RFC 2474,
+              DOI 10.17487/RFC2474, December 1998,
+              <http://www.rfc-editor.org/info/rfc2474>.
+
+Authors' Addresses
+
+   Mirja Kuehlewind
+   ETH Zurich
+   Gloriastrasse 35
+   8092 Zurich
+   Switzerland
+
+   Email: mirja.kuehlewind@tik.ee.ethz.ch
+
+
+   Brian Trammell
+   ETH Zurich
+   Gloriastrasse 35
+   8092 Zurich
+   Switzerland
+
+   Email: ietf@trammell.ch
+
+
+
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                [Page 10]
+
+Internet-Draft              PLUS Statefulness               October 2016
+
+
+   Joe Hildebrand
+
+   Email: hildjj@cursive.net
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Kuehlewind, et al.        Expires April 6, 2017                [Page 11]
