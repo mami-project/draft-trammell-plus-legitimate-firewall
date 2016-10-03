@@ -1,8 +1,8 @@
 ---
 title: Transport-Independent Path Layer State Management
 abbrev: PLUS Statefulness
-docname: draft-trammell-plus-statefulness
-date: 2016-09-28
+docname: draft-trammell-plus-statefulness-00
+date: 2016-10-03
 category: info
 
 ipr: trust200902
@@ -28,12 +28,34 @@ author:
     street: Gloriastrasse 35
     city: 8092 Zurich
     country: Switzerland
-
+  -
+    ins: J. Hildebrand 
+    name: Joe Hildebrand 
+    email: hildjj@cursive.net
 
 informative:
-  I-D.hamilton-quic-transport-protocol:
-  I-D.trammell-plus-abstract-mech:
+  RFC0793:
   RFC2474:
+  I-D.hamilton-quic-transport-protocol:
+  draft-trammell-plus-abstract-mech:
+    title: Abstract Mechanisms for a Cooperative Path Layer under Endpoint Control
+    abbrev: Path Layer Mechanisms
+    docname: draft-trammell-plus-abstract-mech-00
+    date: 2016-09-28
+    category: info
+    ipr: trust200902
+    area: Transport
+    workgroup: PLUS BoF
+    keyword: Internet-Draft
+    author:
+      -
+        ins: B. Trammell
+        name: Brian Trammell
+        organization: ETH Zurich
+        email: ietf@trammell.ch
+        street: Gloriastrasse 35
+        city: 8092 Zurich
+        country: Switzerland
   IMC-GATEWAYS:
     title: An experimental study of home gateway characteristics (Proc. ACM IMC 2010)
     author:
@@ -91,7 +113,7 @@ two main causes for this problem: first, stateful devices often use an
 internal model of the TCP state machine to determine when TCP flows start and
 end, allowing them to manage state for these flows; for UDP flows, they must
 rely on timeouts. These timeouts are generally short relative to those for TCP
-{{IMC- GATEWAYS}}, requiring UDP- encapsulated transports either to generate
+{{IMC-GATEWAYS}}, requiring UDP- encapsulated transports either to generate
 unproductive keepalive traffic for long-lived sessions, or to tolerate
 connectivity problems and the necessity of reconnection due to loss of on-path
 state.
@@ -157,8 +179,8 @@ idle timeout for transport protocols where the device has no information about
 session start and end (e.g. most UDP protocols). t2 is the bidirectional idle
 timeout. It can be considered equivalent to the timeout for transport
 protocols where the device has information about session start and end (e.g.
-TCP). t3 is the shutdown timeout: how long the device will wait for reordered
-packets after a shutdown signal. Selection of timeouts is a configuration and
+TCP). t3 is the closing timeout: how long the device will wait for reordered
+packets after a stop signal. Selection of timeouts is a configuration and
 implementation detail, but generally t3 <= t1 < t2.
 
 ~~~~~~~~~~~~~
@@ -173,9 +195,9 @@ implementation detail, but generally t3 <= t1 < t2.
       t3 |  \                | consent
          |   \__________     v 
        +-----+     t2   \  +----+
-      /       \          \/      \----+    
-     ( closing )<--------( biflow )  packet
-      \       /    stop   \      /<---+    
+      /       \   stop   \/      \----+    
+     ( closing )<--------( biflow ) any-packet
+      \       /           \      /<---+    
        +-----+             +----+
     
 ~~~~~~~~~~~~~
@@ -194,7 +216,7 @@ two states and the transitions between them.
 
 A uniflow becomes a biflow when the device observes a consent signal. A
 consent packet is a packet sent in the opposite direction from the packet sent
-with certain properties as defined in {{signaling-consent}}. After
+with certain properties as defined in {{consent-signaling}}. After
 transitioning to the biflow state, the device starts a timer t2. It resets
 this timer for any packet it forwards in either direction. The biflow state
 represents a fully established bidirectional communication. When timer t2
@@ -224,36 +246,120 @@ useful, depending on the function a device provides. There are a few different
 ways to implement these signals; here, we explore the properties of some
 potential implementations.
 
-We make the following assumptions about these signals:
+We assume the following general requirements for these signals; parallel to
+those given in {{draft-trammell-plus-abstract-mech}}:
 
-- At least the endpoints can verify the integrity of the signals exposed. 
-- Endpoints and devices on path can probabilistically verify that a originator of a signal is on-path.
+- At least the endpoints can verify the integrity of the signals exposed, and
+  shut down a transport association when that verification fails, in order to
+  reduce the incentive for on-path devices to attempt to spoof these signals.
+- Endpoints and devices on path can probabilistically verify that a originator
+  of a signal is on-path.
 
 ## Consent Signaling
 
-[WRITE THIS: consent flow must
-at least be medium-assurance of implementation and on-path-ness. consent token
-is derived from forward token.]
+A consent signal indicates that endpoint that received the first packet seen
+by the device is interested in continuing conversation with the sending
+endpoint. In TCP, the consent signal corresponding to a first packet with the
+SYN flag set is a SYN-ACK packet sent in reply with an appropriate
+acknowledgment number. However, a transport-independent signal cannot rely on
+TCP-specific header fields.
 
-## Stop Bit Signaling
+Transport-independent, path-verifiable consent signaling can be implemented
+using a association token generated by one endpoint, present on each packet
+sent in the flow by that endpoint, and a response token, derived from the
+association token using a well-known, defined function, present on each packet
+sent in the flow by the opposite endpoint. We can assume a transport
+association has an initiator and a responder; under this assumption, the
+association token is chosen by the initiator, and the response token generated
+by the responder.
 
-[WRITE THIS: one bit, integrity-protected, to say stop. should be sent by one endpoint as the last packet. t3 serves to ]
+Any packet sent by the responder with a valid response token, and without a
+stop signal (see {{stop-signaling}}), can then be taken to be a consent signal
+to continue a bidirectional communication. Note that, since it relies on a
+widely-known function, this mechanism does allow on-path devices to forge
+consent signaling in a way that downstream on-path devices cannot detect.
+However, in the presence of end-to-end signal integrity verification, this
+forgery will be detected by the endpoint, which MUST terminate the association
+on a forged consent signal; the flow at the duped on-path device will
+transition from biflow to closing within a single packet. This reduces any
+attack against the consent signaling mechanism to the disruption of a
+connection, which on-path devices can do in any case by simply refusing to
+forward packets.
 
-## Initiator Signaling
+Association tokens MUST be chosen by initiators to be hard to guess.
+Cryptographic random number generators suffice here. Note there is a tradeoff
+between per-packet overhead and state overhead at on-path devices, and
+assurance that an association token is hard to guess. This tradeoff must be
+evaluated at protocol design time.
 
-[WRITE THIS: additional optional bit to say "i'm the flow initiator", on every packet. this might make some firewalls easier to implement...?]
+There are a few considerations in choosing a function (or functions) to
+generate the response token from the association token, and to verify a
+response token given an association token.
 
+- Is the function symmetric (that is, do on-path devices do the same
+  processing to verify a response token as the responder does to generate it),
+  or asymmetric (where different processing is used on-path than at the
+  responder)?
+- If the function is asymmetric, is there only a single valid response token
+  for each association token, or multiple valid response tokens?
+- If the function is asymmetric, the verification process should be
+  computationally as complex or less complex than the generation process.
+- Is the function one-way or two-way? For one-way functions, it is difficult
+  to generate an association token from a valid response token; for two-way
+  functions, this difficulty does not exist. Using a two-way function may make
+  it simpler to design on-path devices with reduced per-flow state 
+  requirements.
+
+## Stop Signaling
+
+A stop signal is a single bit directly carried or otherwise encoded in the protocol
+header to indicate that a flow is ending, whether normally or abnormally, and
+that state associated with the flow should be torn down. Upon decoding a stop
+signal, a device on path should move the flow from uniflow state to null, or
+from biflow state to closing.
+
+Transports should send a stop signal only on the last packet sent in a
+bidirectional flow. The closing timeout t3 is intended to ensure that any
+packets reordered in delivery are accounted to the flow before state for it is
+dropped.
+
+We assume the encoding of a stop signal into a packet header, as with all
+other signals, is integrity protected end-to-end. Stop signals, as consent
+signals, be forged by one on-path device to dupe other devices into moving
+flows into the closing state. However, state will be re-established by the
+continuing flow (and resulting consent signals) after the closing timeout, and
+an endpoint receiving a spoofed stop signal could enter a fast re-
+establishment phase of the upper layer transport protocol to minimize
+disruption, further reducing the incentive to attackers to spoof stop signals.
+
+<!--
 ## Header-Only Forwarding
 
-[TODO: probably cut this, potentially move it to the plus protocol document: A network device in "no state" might only forward the unencrypted/header parts of a packet to transition to "biflow" state without forwarding unknow data. A PLUS receiver MUST reply with a (PLUS-only) packet (within a given time frame). On receiption of this PLUS-only packet, the network device tranits in "biflow" state and SHOULD resend the whole packet including the encrypted data while dropping a PLUS-only packet. If the network device was not able to store the encrypted data, it forwards the PLUS-only packet to the original sending endpoint which then can be used as a fast trigger that the original encrypted data was not received by the intented receiving endpoint.]
+[EDITOR'S NOTE: probably cut this, since it is extremely expensive to implement on path; potentially move it to the plus protocol document as an optional feature, since it makes some assumptions about PLUS we don't here: A network device in "no state" might only forward the unencrypted/header parts of a packet to transition to "biflow" state without forwarding unknow data. A PLUS receiver MUST reply with a (PLUS-only) packet (within a given time frame). On receiption of this PLUS-only packet, the network device tranits in "biflow" state and SHOULD resend the whole packet including the encrypted data while dropping a PLUS-only packet. If the network device was not able to store the encrypted data, it forwards the PLUS-only packet to the original sending endpoint which then can be used as a fast trigger that the original encrypted data was not received by the intented receiving endpoint.]
+-->
 
 ## Timeout Exposure
 
-[WRITE ME: additional information: use {{I-D.trammell-plus-abstract-mech}} to expose the time-outs used to the endpoints]
+Since one of the goals of these mechanisms is to reduce the amount of non-
+productive keepalive traffic required for UDP-encapsulated transport
+protocols, they MAY be deployed together with a path-to-receiver signal with
+feedback as defined in {{draft-trammell-plus-abstract-mech}} asking for timeouts
+t1, t2, and t3 for a given flow.
 
-# Signal mapping for current transport protocols
+## Signal mapping for TCP
 
-[WRITE ME: how to handle TCP flags? What about unknown transports? ]
+A mapping of TCP flags to transitions in to the state machine in {{state-
+machine}} shows how devices currently using a model of the TCP state machine
+can be converted to use this state machine. 
+
+Simply speaking, the ACK flag {{RFC0793}} in the absence of the FIN or RST
+flags is synonymous with the consent signal, while the RST or final FIN flags
+are stop signals. For a typical TCP flow:
+
+1. The initial SYN places the flow into uniflow state,
+2. The SYN-ACK sent in reply acts as a consent signal and places the flow into biflow state,
+3. Any RST moves the flow into closing state, or 
+4. The final FIN-ACK (not the first half-close FIN) moves the flow into closing state.
 
 # IANA Considerations
 
@@ -261,14 +367,14 @@ This document has no actions for IANA.
 
 # Security Considerations
 
-TODO
+[EDITOR'S NOTE: reiterate why endpoint integrity protection is sufficient]
 
 # Acknowledgments
 
-Thanks to Joe Hildebrand and Christian Huitema for the discussions leading to this document.
+Thanks to Christian Huitema for discussions leading to this document.
 
-This work is supported by the European Commission under Horizon 2020 grant
-agreement no. 688421 Measurement and Architecture for a Middleboxed Internet
-(MAMI), and by the Swiss State Secretariat for Education, Research, and
-Innovation under contract no. 15.0268. This support does not imply
+This work is partially supported by the European Commission under Horizon 2020
+grant agreement no. 688421 Measurement and Architecture for a Middleboxed
+Internet (MAMI), and by the Swiss State Secretariat for Education, Research,
+and Innovation under contract no. 15.0268. This support does not imply
 endorsement.
