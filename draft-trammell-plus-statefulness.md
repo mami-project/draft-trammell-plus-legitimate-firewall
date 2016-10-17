@@ -198,7 +198,7 @@ generally t3 <= t1 < t2.
   '   /      \---------->/       \----+     '  UNIFLOW
   '  (  zero  )         ( uniflow )  packet '  ONLY 
   '   \      /<----------\       /<---+     '  STATES
-  '    +----+   t1,stop   +-----+           '
+  '    +----+      t1     +-----+           '
   '_ _ _ ^_^ _ _ _ _ _ _ _ _ | _ _ _ _ _ _ _'
       t3 |  \                | association
          |   \__________     v 
@@ -251,14 +251,15 @@ reordered packets after the stop signal will be accounted to the flow. When
 this timer expires, the device drops state for the flow, performing any
 associated processing.
 
-## Additional States
+## Additional States and Actions
 
-Devices may augment the transitions in this state diagram depending on their
-function. For example, a firewall that decides based on some information
-beyond the signals used by this state machine to shut down a flow may
-transition it directly to a blacklist state on shutdown. This document is
-concerned only with states and transitions common to transport- and function-
-independent state maintenance.
+This document is concerned only with states and transitions common to
+transport- and function- independent state maintenance. Devices may augment
+the transitions in this state diagram depending on their function. For
+example, a firewall that decides based on some information beyond the signals
+used by this state machine to shut down a flow may transition it directly to a
+blacklist state on shutdown. Or, a firewall may fail to forward additional
+packets in the uniflow state until an association signal is observed.
 
 # Abstract Signaling Mechanisms
 
