@@ -271,8 +271,11 @@ li, p {
 <link href="#rfc.section.1" rel="Chapter" title="1 Introduction"/>
 <link href="#rfc.section.2" rel="Chapter" title="2 Terminology"/>
 <link href="#rfc.section.3" rel="Chapter" title="3 State Machine"/>
+<link href="#rfc.section.3.1" rel="Chapter" title="3.1 Uniflow States"/>
+<link href="#rfc.section.3.2" rel="Chapter" title="3.2 Biflow States"/>
+<link href="#rfc.section.3.3" rel="Chapter" title="3.3 Additional States and Actions"/>
 <link href="#rfc.section.4" rel="Chapter" title="4 Abstract Signaling Mechanisms"/>
-<link href="#rfc.section.4.1" rel="Chapter" title="4.1 Consent Signaling"/>
+<link href="#rfc.section.4.1" rel="Chapter" title="4.1 Association Signaling"/>
 <link href="#rfc.section.4.2" rel="Chapter" title="4.2 Stop Signaling"/>
 <link href="#rfc.section.4.3" rel="Chapter" title="4.3 Timeout Exposure"/>
 <link href="#rfc.section.4.4" rel="Chapter" title="4.4 Signal mapping for TCP"/>
@@ -290,9 +293,9 @@ li, p {
 
   <meta name="dct.creator" content="Kuehlewind, M., Trammell, B., and J. Hildebrand" />
   <meta name="dct.identifier" content="urn:ietf:id:draft-trammell-plus-statefulness-00" />
-  <meta name="dct.issued" scheme="ISO8601" content="2016-10-03" />
-  <meta name="dct.abstract" content="This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or degenerate forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows." />
-  <meta name="description" content="This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or degenerate forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows." />
+  <meta name="dct.issued" scheme="ISO8601" content="2016-10-17" />
+  <meta name="dct.abstract" content="This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or incomplete forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows." />
+  <meta name="description" content="This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or incomplete forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows." />
 
 </head>
 
@@ -314,12 +317,12 @@ li, p {
   <td class="right">ETH Zurich</td>
 </tr>
 <tr>
-  <td class="left">Expires: April 6, 2017</td>
+  <td class="left">Expires: April 20, 2017</td>
   <td class="right">J. Hildebrand</td>
 </tr>
 <tr>
   <td class="left"></td>
-  <td class="right">October 03, 2016</td>
+  <td class="right">October 17, 2016</td>
 </tr>
 
     	
@@ -332,14 +335,14 @@ li, p {
   <h1 id="rfc.abstract">
   <a href="#rfc.abstract">Abstract</a>
 </h1>
-<p>This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or degenerate forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows.</p>
+<p>This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or incomplete forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows.</p>
 <h1 id="rfc.status">
   <a href="#rfc.status">Status of This Memo</a>
 </h1>
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at http://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on April 6, 2017.</p>
+<p>This Internet-Draft will expire on April 20, 2017.</p>
 <h1 id="rfc.copyrightnotice">
   <a href="#rfc.copyrightnotice">Copyright Notice</a>
 </h1>
@@ -354,8 +357,11 @@ li, p {
   	<li>1.   <a href="#rfc.section.1">Introduction</a></li>
 <li>2.   <a href="#rfc.section.2">Terminology</a></li>
 <li>3.   <a href="#rfc.section.3">State Machine</a></li>
-<li>4.   <a href="#rfc.section.4">Abstract Signaling Mechanisms</a></li>
-<ul><li>4.1.   <a href="#rfc.section.4.1">Consent Signaling</a></li>
+<ul><li>3.1.   <a href="#rfc.section.3.1">Uniflow States</a></li>
+<li>3.2.   <a href="#rfc.section.3.2">Biflow States</a></li>
+<li>3.3.   <a href="#rfc.section.3.3">Additional States and Actions</a></li>
+</ul><li>4.   <a href="#rfc.section.4">Abstract Signaling Mechanisms</a></li>
+<ul><li>4.1.   <a href="#rfc.section.4.1">Association Signaling</a></li>
 <li>4.2.   <a href="#rfc.section.4.2">Stop Signaling</a></li>
 <li>4.3.   <a href="#rfc.section.4.3">Timeout Exposure</a></li>
 <li>4.4.   <a href="#rfc.section.4.4">Signal mapping for TCP</a></li>
@@ -374,7 +380,7 @@ li, p {
 <p id="rfc.section.1.p.1">The boundary between the network and transport layers was originally defined to be that between information used (and potentially modified) hop-by-hop, and that used end-to-end. End-to-end information in the transport layer is associated with state at the endpoints, but processing of network-layer information was assumed to be stateless.</p>
 <p id="rfc.section.1.p.2">The widespread deployment of stateful middleboxes in the Internet, such as network address and port translators (NAPT), firewalls that model the TCP state machine to distinguish packets belonging from desirable flows from backscatter and random attack traffic, and devices which keep per-flow state for reporting and monitoring purposes (e.g. IPFIX <a href="#RFC7011">[RFC7011]</a> Metering Processes), has broken this assumption, and made it more difficult to deploy non-TCP transport protocols in the Internet.</p>
 <p id="rfc.section.1.p.3">The deployment of new transport protocols encapsulated in UDP with encrypted transport headers (such as QUIC <a href="#I-D.hamilton-quic-transport-protocol">[I-D.hamilton-quic-transport-protocol]</a>) will present a challenge to the operation of these devices, and their ubquity likewise threatens to impair the deployability of these protocols. There are two main causes for this problem: first, stateful devices often use an internal model of the TCP state machine to determine when TCP flows start and end, allowing them to manage state for these flows; for UDP flows, they must rely on timeouts. These timeouts are generally short relative to those for TCP <a href="#IMC-GATEWAYS">[IMC-GATEWAYS]</a>, requiring UDP- encapsulated transports either to generate unproductive keepalive traffic for long-lived sessions, or to tolerate connectivity problems and the necessity of reconnection due to loss of on-path state.</p>
-<p id="rfc.section.1.p.4">This document presents a solution to this problem by defining a state machine that is transport independent to be implemented at per-flow state-keeping middleboxes as a replacement for degenerate TCP state modeling. Middleboxes implementing this state machine using signals from a common UDP encapsulation layer can have equivalent necessary state information to that provided by TCP, reducing the friction between middleboxes and these new transport protocols.</p>
+<p id="rfc.section.1.p.4">This document presents a solution to this problem by defining a state machine that is transport independent to be implemented at per-flow state-keeping middleboxes as a replacement for incomplete TCP state modeling. Middleboxes implementing this state machine using signals from a common UDP encapsulation layer can have equivalent necessary state information to that provided by TCP, reducing the friction between middleboxes and these new transport protocols.</p>
 <h1 id="rfc.section.2"><a href="#rfc.section.2">2.</a> <a href="#terminology" id="terminology">Terminology</a></h1>
 <p id="rfc.section.2.p.1">In this document, the term &#8220;flow&#8221; is defined to be compatible with the definition given in <a href="#RFC7011">[RFC7011]</a>: A flow is defined as a set of packets passing a device on the network during a certain time interval. All packets belonging to a particular Flow have a set of common properties. Each property is defined as the result of applying a function to the values of:</p>
 <p/>
@@ -393,10 +399,18 @@ li, p {
 <ul>
   <li>zero: there is no state for a given flow at the device</li>
   <li>uniflow: a packet has been seen in one direction; state will be kept at the device until it is explicitly cancelled or until timeout t1 elapses without a packet.</li>
-  <li>biflow: a packet has been seen in one direction and an indication of consent has been seen in the opposite direction; state will be kept at the device until it is explicitly cancelled or until timeout t2 elapses without a packet.</li>
+  <li>biflow: a packet has been seen in one direction and an indication that that the receiving endpoint wishes to continue the association has been seen in the opposite direction; state will be kept at the device until it is explicitly canceled or until timeout t2 elapses without a packet.</li>
   <li>closing: an established biflow is shutting down due to an explicit close indication; state will be kept at the device until timeout t3 elapses.</li>
 </ul>
-<p id="rfc.section.3.p.3">t1 is the unidirectional idle timeout. It can be considered equivalent to the idle timeout for transport protocols where the device has no information about session start and end (e.g. most UDP protocols). t2 is the bidirectional idle timeout. It can be considered equivalent to the timeout for transport protocols where the device has information about session start and end (e.g.  TCP). t3 is the closing timeout: how long the device will wait for reordered packets after a stop signal. Selection of timeouts is a configuration and implementation detail, but generally t3 &lt;= t1 &lt; t2.</p>
+<p id="rfc.section.3.p.3">The three timeouts are defined as follows:</p>
+<p/>
+
+<ul>
+  <li>t1 is the unidirectional idle timeout. It can be considered equivalent to the idle timeout for transport protocols where the device has no information about session start and end (e.g. most UDP protocols).</li>
+  <li>t2 is the bidirectional idle timeout. It can be considered equivalent to the timeout for transport protocols where the device has information about session start and end (e.g. TCP).</li>
+  <li>t3 is the closing timeout: how long the device will account additional packets to a flow after observing a stop signal, and is generally applied to ensuring a reordered stop signal doesn&#8217;t create a new flow.</li>
+</ul>
+<p id="rfc.section.3.p.5">Selection of timeouts is a configuration and implementation detail, but generally t3 &lt;= t1 &lt; t2.</p>
 <div id="rfc.figure.1"/>
 <div id="fig-states"/>
 <pre>
@@ -406,24 +420,28 @@ li, p {
   '   /      \----------&gt;/       \----+     '  UNIFLOW
   '  (  zero  )         ( uniflow )  packet '  ONLY 
   '   \      /&lt;----------\       /&lt;---+     '  STATES
-  '    +----+   t1,stop   +-----+           '
+  '    +----+      t1     +-----+           '
   '_ _ _ ^_^ _ _ _ _ _ _ _ _ | _ _ _ _ _ _ _'
-      t3 |  \                | consent
+      t3 |  \                | association
          |   \__________     v 
        +-----+     t2   \  +----+
-      /       \   stop   \/      \----+    
+      /       \          \/      \----+    
      ( closing )&lt;--------( biflow ) any-packet
-      \       /           \      /&lt;---+    
+      \       /   stop    \      /&lt;---+    
        +-----+             +----+
     
 </pre>
 <p class="figure">Figure 1: Transport-Independent State Machine for Stateful On-Path Devices</p>
-<p id="rfc.section.3.p.4">When a packet is received for a flow that the device has no state for, and it is configured to forward the packet instead of dropping it, it moves that flow from the zero state into the uniflow state and starts a timer t1. It resets this timer for any additional packet it forwards in the same direction as long as the flow remains in the uniflow state. When timer t1 expires, or when a stop signal is observed, the device drops state for the flow and performs any processing associated with doing so: tearing down NAT bindings, closing associated firewall pinholes, exporting flow information, and so on.  Note that devices that see only a single direction of a flow only have these two states and the transitions between them.</p>
-<p id="rfc.section.3.p.5">A uniflow becomes a biflow when the device observes a consent signal. A consent packet is a packet sent in the opposite direction from the packet sent with certain properties as defined in <a href="#consent-signaling">Section 4.1</a>. After transitioning to the biflow state, the device starts a timer t2. It resets this timer for any packet it forwards in either direction. The biflow state represents a fully established bidirectional communication. When timer t2 expires, the device assumes that the flow has shut down without signaling as such, and drops state for the flow, performing any associated processing. When a stop signal is observed in either direction, the flow transitions to the closing state.</p>
-<p id="rfc.section.3.p.6">When a flow enters the closing state, it starts a timer t3. When this timer expires, the device drops state for the flow, performing any associated processing.</p>
-<p id="rfc.section.3.p.7">Devices may augment the transitions in this state diagram depending on their function. For example, a firewall that decides based on some information beyond the signals used by this state machine to shut down a flow may transition it directly to a blacklist state on shutdown. This document is concerned only with states and transitions common to transport- and function- independent state maintenance.</p>
+<h1 id="rfc.section.3.1"><a href="#rfc.section.3.1">3.1.</a> <a href="#uniflow-states" id="uniflow-states">Uniflow States</a></h1>
+<p id="rfc.section.3.1.p.1">When a packet is received for a flow that the device has no state for, and it is configured to forward the packet instead of dropping it, it moves that flow from the zero state into the uniflow state and starts a timer t1. It resets this timer for any additional packet it forwards in the same direction as long as the flow remains in the uniflow state. When timer t1 expires on a flow in the uniflow state, the device drops state for the flow and performs any processing associated with doing so: tearing down NAT bindings, closing associated firewall pinholes, exporting flow information, and so on. The device may also drop state on a stop signal, if observed.</p>
+<p id="rfc.section.3.1.p.2">Some devices will only see one side of a communication, e.g. if they are placed in a portion of a network with asymmetric routing. These devices use only the zero and uniflow states (as marked in <a href="#fig-states">Figure 1</a>.) In addition, true uniflows &#8211; protocols which are solely unidirectional (e.g. some applications over UDP) &#8211; will also use only the uniflow-only states. In either case, current devices generally don&#8217;t associate much state with observed uniflows flows, and timeout is generally sufficient to expire this state.</p>
+<h1 id="rfc.section.3.2"><a href="#rfc.section.3.2">3.2.</a> <a href="#biflow-states" id="biflow-states">Biflow States</a></h1>
+<p id="rfc.section.3.2.p.1">A uniflow transitions to the biflow state when the device observes an association signal. An association signal consists of a packet sent in the opposite direction from the uniflow packet(s), with certain properties as defined in <a href="#association-signaling">Section 4.1</a>. After transitioning to the biflow state, the device starts a timer t2. It resets this timer for any packet it forwards in either direction. The biflow state represents a fully established bidirectional communication. When timer t2 expires, the device assumes that the flow has shut down without signaling as such, and drops state for the flow, performing any associated processing. When a stop signal is observed in either direction, the flow transitions to the closing state.</p>
+<p id="rfc.section.3.2.p.2">When a flow enters the closing state, it starts a timer t3. While the stop signal should be the last packet on a flow, the t3 timer ensures that reordered packets after the stop signal will be accounted to the flow. When this timer expires, the device drops state for the flow, performing any associated processing.</p>
+<h1 id="rfc.section.3.3"><a href="#rfc.section.3.3">3.3.</a> <a href="#additional-states-and-actions" id="additional-states-and-actions">Additional States and Actions</a></h1>
+<p id="rfc.section.3.3.p.1">This document is concerned only with states and transitions common to transport- and function- independent state maintenance. Devices may augment the transitions in this state diagram depending on their function. For example, a firewall that decides based on some information beyond the signals used by this state machine to shut down a flow may transition it directly to a blacklist state on shutdown. Or, a firewall may fail to forward additional packets in the uniflow state until an association signal is observed.</p>
 <h1 id="rfc.section.4"><a href="#rfc.section.4">4.</a> <a href="#abstract-signaling-mechanisms" id="abstract-signaling-mechanisms">Abstract Signaling Mechanisms</a></h1>
-<p id="rfc.section.4.p.1">The state machine in <a href="#state-machine">Section 3</a> requires three signals: a packet (the first packet observed in a flow in the zero state), a consent signal (allowing a device to verify that an endpoint wishes a bidirectional communication to be established or to continue), and a stop signal (noting that an endpoint wishes to stop a bidirectional communication). Additional related signals may also be useful, depending on the function a device provides. There are a few different ways to implement these signals; here, we explore the properties of some potential implementations.</p>
+<p id="rfc.section.4.p.1">The state machine in <a href="#state-machine">Section 3</a> requires three signals: a packet (the first packet observed in a flow in the zero state), an association signal (allowing a device to verify that an endpoint wishes a bidirectional communication to be established or to continue), and a stop signal (noting that an endpoint wishes to stop a bidirectional communication). Additional related signals may also be useful, depending on the function a device provides. There are a few different ways to implement these signals; here, we explore the properties of some potential implementations.</p>
 <p id="rfc.section.4.p.2">We assume the following general requirements for these signals; parallel to those given in <a href="#draft-trammell-plus-abstract-mech">[draft-trammell-plus-abstract-mech]</a>:</p>
 <p/>
 
@@ -431,41 +449,44 @@ li, p {
   <li>At least the endpoints can verify the integrity of the signals exposed, and shut down a transport association when that verification fails, in order to reduce the incentive for on-path devices to attempt to spoof these signals.</li>
   <li>Endpoints and devices on path can probabilistically verify that a originator of a signal is on-path.</li>
 </ul>
-<h1 id="rfc.section.4.1"><a href="#rfc.section.4.1">4.1.</a> <a href="#consent-signaling" id="consent-signaling">Consent Signaling</a></h1>
-<p id="rfc.section.4.1.p.1">A consent signal indicates that endpoint that received the first packet seen by the device is interested in continuing conversation with the sending endpoint. In TCP, the consent signal corresponding to a first packet with the SYN flag set is a SYN-ACK packet sent in reply with an appropriate acknowledgment number. However, a transport-independent signal cannot rely on TCP-specific header fields.</p>
-<p id="rfc.section.4.1.p.2">Transport-independent, path-verifiable consent signaling can be implemented using a association token generated by one endpoint, present on each packet sent in the flow by that endpoint, and a response token, derived from the association token using a well-known, defined function, present on each packet sent in the flow by the opposite endpoint. We can assume a transport association has an initiator and a responder; under this assumption, the association token is chosen by the initiator, and the response token generated by the responder.</p>
-<p id="rfc.section.4.1.p.3">Any packet sent by the responder with a valid response token, and without a stop signal (see <a href="#stop-signaling">Section 4.2</a>), can then be taken to be a consent signal to continue a bidirectional communication. Note that, since it relies on a widely-known function, this mechanism does allow on-path devices to forge consent signaling in a way that downstream on-path devices cannot detect.  However, in the presence of end-to-end signal integrity verification, this forgery will be detected by the endpoint, which MUST terminate the association on a forged consent signal; the flow at the duped on-path device will transition from biflow to closing within a single packet. This reduces any attack against the consent signaling mechanism to the disruption of a connection, which on-path devices can do in any case by simply refusing to forward packets.</p>
-<p id="rfc.section.4.1.p.4">Association tokens MUST be chosen by initiators to be hard to guess.  Cryptographic random number generators suffice here. Note there is a tradeoff between per-packet overhead and state overhead at on-path devices, and assurance that an association token is hard to guess. This tradeoff must be evaluated at protocol design time.</p>
-<p id="rfc.section.4.1.p.5">There are a few considerations in choosing a function (or functions) to generate the response token from the association token, and to verify a response token given an association token.</p>
+<h1 id="rfc.section.4.1"><a href="#rfc.section.4.1">4.1.</a> <a href="#association-signaling" id="association-signaling">Association Signaling</a></h1>
+<p id="rfc.section.4.1.p.1">An association signal indicates that endpoint that received the first packet seen by the device is interested in continuing conversation with the sending endpoint. In TCP, the association signal corresponding to a first packet with the SYN flag set is a SYN-ACK packet sent in reply with an appropriate acknowledgment number. However, a transport-independent signal cannot rely on TCP-specific header fields.</p>
+<p id="rfc.section.4.1.p.2">Note that association signaling for this state machine is an in-band analogue to consent signaling in ICE <a href="#RFC7675">[RFC7675]</a>.</p>
+<p id="rfc.section.4.1.p.3">Transport-independent, path-verifiable association signaling can be implemented using a association token generated by one endpoint, present on each packet sent in the flow by that endpoint, and a response token, derived from the association token using a well-known, defined function, present on each packet sent in the flow by the opposite endpoint. We can assume a transport association has an initiator and a responder; under this assumption, the association token is chosen by the initiator, and the response token generated by the responder.</p>
+<p id="rfc.section.4.1.p.4">Any packet sent by the responder with a valid response token, and without a stop signal (see <a href="#stop-signaling">Section 4.2</a>), can then be taken to be a association signal to continue a bidirectional communication. Note that, since it relies on a widely-known function, this mechanism does allow on-path devices to forge association signaling in a way that downstream on-path devices cannot detect.  However, in the presence of end-to-end signal integrity verification, this forgery will be detected by the endpoint, which MUST terminate the association on a forged association signal; the flow at the duped on-path device will transition from biflow to closing within a single packet. This reduces any attack against the association signaling mechanism to the disruption of a connection, which on-path devices can do in any case by simply refusing to forward packets.</p>
+<p id="rfc.section.4.1.p.5">Association tokens MUST be chosen by initiators to be hard to guess.  Cryptographic random number generators suffice here. Note there is a tradeoff between per-packet overhead and state overhead at on-path devices, and assurance that an association token is hard to guess. This tradeoff must be evaluated at protocol design time.</p>
+<p id="rfc.section.4.1.p.6">There are a few considerations in choosing a function (or functions) to generate the response token from the association token, and to verify a response token given an association token.</p>
 <p/>
 
 <ul>
   <li>Is the function symmetric (that is, do on-path devices do the same processing to verify a response token as the responder does to generate it), or asymmetric (where different processing is used on-path than at the responder)?</li>
+  <li>Is the function one-way or two-way? For one-way functions, it is difficult to generate an association token from a valid response token; for two-way functions, this difficulty does not exist. Using a two-way function may make it simpler to design on-path devices with reduced per-flow state requirements.</li>
   <li>If the function is asymmetric, is there only a single valid response token for each association token, or multiple valid response tokens?</li>
   <li>If the function is asymmetric, the verification process should be computationally as complex or less complex than the generation process.</li>
-  <li>Is the function one-way or two-way? For one-way functions, it is difficult to generate an association token from a valid response token; for two-way functions, this difficulty does not exist. Using a two-way function may make it simpler to design on-path devices with reduced per-flow state requirements.</li>
 </ul>
+<p id="rfc.section.4.1.p.8">Two possible functions for response token generation are simple one&#8217;s complement of the association token (a two-way, symmetric function), or taking N bits from an SHA-2 hash of the association token (a one-way, symmetric function). Both provide some assurance of knowledge of the association token and implementation of the protocol. In any case, a concrete implementation of association signaling must choose a single function, or mechanism for unambiguously choosing one, at both endpoints as well as along the path.</p>
+<p id="rfc.section.4.1.p.9">Note that if a concrete protocol driving this state machine requires the association and response tokens to be present on every packet, the token present identifies the direction of traffic.</p>
 <h1 id="rfc.section.4.2"><a href="#rfc.section.4.2">4.2.</a> <a href="#stop-signaling" id="stop-signaling">Stop Signaling</a></h1>
 <p id="rfc.section.4.2.p.1">A stop signal is a single bit directly carried or otherwise encoded in the protocol header to indicate that a flow is ending, whether normally or abnormally, and that state associated with the flow should be torn down. Upon decoding a stop signal, a device on path should move the flow from uniflow state to null, or from biflow state to closing.</p>
 <p id="rfc.section.4.2.p.2">Transports should send a stop signal only on the last packet sent in a bidirectional flow. The closing timeout t3 is intended to ensure that any packets reordered in delivery are accounted to the flow before state for it is dropped.</p>
-<p id="rfc.section.4.2.p.3">We assume the encoding of a stop signal into a packet header, as with all other signals, is integrity protected end-to-end. Stop signals, as consent signals, be forged by one on-path device to dupe other devices into moving flows into the closing state. However, state will be re-established by the continuing flow (and resulting consent signals) after the closing timeout, and an endpoint receiving a spoofed stop signal could enter a fast re- establishment phase of the upper layer transport protocol to minimize disruption, further reducing the incentive to attackers to spoof stop signals.</p>
+<p id="rfc.section.4.2.p.3">We assume the encoding of a stop signal into a packet header, as with all other signals, is integrity protected end-to-end. Stop signals, as association signals, be forged by one on-path device to dupe other devices into moving flows into the closing state. However, state will be re-established by the continuing flow (and resulting association signals) after the closing timeout, and an endpoint receiving a spoofed stop signal could enter a fast re-establishment phase of the upper layer transport protocol to minimize disruption, further reducing the incentive to attackers to spoof stop signals.</p>
 <h1 id="rfc.section.4.3"><a href="#rfc.section.4.3">4.3.</a> <a href="#timeout-exposure" id="timeout-exposure">Timeout Exposure</a></h1>
 <p id="rfc.section.4.3.p.1">Since one of the goals of these mechanisms is to reduce the amount of non- productive keepalive traffic required for UDP-encapsulated transport protocols, they MAY be deployed together with a path-to-receiver signal with feedback as defined in <a href="#draft-trammell-plus-abstract-mech">[draft-trammell-plus-abstract-mech]</a> asking for timeouts t1, t2, and t3 for a given flow.</p>
 <h1 id="rfc.section.4.4"><a href="#rfc.section.4.4">4.4.</a> <a href="#signal-mapping-for-tcp" id="signal-mapping-for-tcp">Signal mapping for TCP</a></h1>
 <p id="rfc.section.4.4.p.1">A mapping of TCP flags to transitions in to the state machine in {{state- machine}} shows how devices currently using a model of the TCP state machine can be converted to use this state machine.</p>
-<p id="rfc.section.4.4.p.2">Simply speaking, the ACK flag <a href="#RFC0793">[RFC0793]</a> in the absence of the FIN or RST flags is synonymous with the consent signal, while the RST or final FIN flags are stop signals. For a typical TCP flow:</p>
+<p id="rfc.section.4.4.p.2">Simply speaking, the ACK flag <a href="#RFC0793">[RFC0793]</a> in the absence of the FIN or RST flags is synonymous with the association signal, while the RST or final FIN flags are stop signals. For a typical TCP flow:</p>
 <p/>
 
 <ol>
   <li>The initial SYN places the flow into uniflow state,</li>
-  <li>The SYN-ACK sent in reply acts as a consent signal and places the flow into biflow state,</li>
+  <li>The SYN-ACK sent in reply acts as a association signal and places the flow into biflow state,</li>
   <li>Any RST moves the flow into closing state, or</li>
   <li>The final FIN-ACK (not the first half-close FIN) moves the flow into closing state.</li>
 </ol>
 <h1 id="rfc.section.5"><a href="#rfc.section.5">5.</a> <a href="#iana-considerations" id="iana-considerations">IANA Considerations</a></h1>
 <p id="rfc.section.5.p.1">This document has no actions for IANA.</p>
 <h1 id="rfc.section.6"><a href="#rfc.section.6">6.</a> <a href="#security-considerations" id="security-considerations">Security Considerations</a></h1>
-<p id="rfc.section.6.p.1">[EDITOR&#8217;S NOTE: reiterate why endpoint integrity protection is sufficient]</p>
+<p id="rfc.section.6.p.1">This document defines a state machine for transport-independent state management on middleboxes, using in-band signaling, to replace the commonly- implemented current practice of incomplete TCP state modeling on these devices. It defines new signals for state management. While these signals can be spoofed by any device on path that observes traffic in both directions, we presume the presence of end-to-end integrity protection of these signals provided by the upper-layer transport driving them. This allows such spoofing to be detected and countered by endpoints, reducing the threat from on-path devices to connection disruption, which such devices are trivially placed to perform in any case.</p>
 <h1 id="rfc.section.7"><a href="#rfc.section.7">7.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a></h1>
 <p id="rfc.section.7.p.1">Thanks to Christian Huitema for discussions leading to this document.</p>
 <p id="rfc.section.7.p.2">This work is partially supported by the European Commission under Horizon 2020 grant agreement no. 688421 Measurement and Architecture for a Middleboxed Internet (MAMI), and by the Swiss State Secretariat for Education, Research, and Innovation under contract no. 15.0268. This support does not imply endorsement.</p>
@@ -525,6 +546,12 @@ li, p {
         <b id="RFC2474">[RFC2474]</b>
       </td>
       <td class="top"><a>Nichols, K.</a>, <a>Blake, S.</a>, <a>Baker, F.</a> and <a>D. Black</a>, "<a href="http://tools.ietf.org/html/rfc2474">Definition of the Differentiated Services Field (DS Field) in the IPv4 and IPv6 Headers</a>", RFC 2474, DOI 10.17487/RFC2474, December 1998.</td>
+    </tr>
+    <tr>
+      <td class="reference">
+        <b id="RFC7675">[RFC7675]</b>
+      </td>
+      <td class="top"><a>Perumal, M.</a>, <a>Wing, D.</a>, <a>Ravindranath, R.</a>, <a>Reddy, T.</a> and <a>M. Thomson</a>, "<a href="http://tools.ietf.org/html/rfc7675">Session Traversal Utilities for NAT (STUN) Usage for Consent Freshness</a>", RFC 7675, DOI 10.17487/RFC7675, October 2015.</td>
     </tr>
   </tbody>
 </table>
