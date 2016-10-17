@@ -2,7 +2,7 @@
 title: Transport-Independent Path Layer State Management
 abbrev: PLUS Statefulness
 docname: draft-trammell-plus-statefulness-00
-date: 2016-10-03
+date:
 category: info
 
 ipr: trust200902
@@ -36,6 +36,7 @@ author:
 informative:
   RFC0793:
   RFC2474:
+  RFC7675:
   I-D.hamilton-quic-transport-protocol:
   draft-trammell-plus-abstract-mech:
     title: Abstract Mechanisms for a Cooperative Path Layer under Endpoint Control
@@ -83,7 +84,7 @@ This document describes a simple state machine for stateful network devices on
 a path between two endpoints to associate state with traffic traversing them
 on a per-flow basis, as well as abstract signaling mechanisms for driving the
 state machine. This state machine is intended to replace the de-facto use of
-the TCP state machine or degenerate forms thereof by stateful network devices
+the TCP state machine or incomplete forms thereof by stateful network devices
 in a transport-independent way, while still allowing for fast state timeout
 of non-established or undesirable flows.
 
@@ -120,7 +121,7 @@ state.
 
 This document presents a solution to this problem by defining a state machine
 that is transport independent to be implemented at per-flow state-keeping
-middleboxes as a replacement for degenerate TCP state modeling. Middleboxes
+middleboxes as a replacement for incomplete TCP state modeling. Middleboxes
 implementing this state machine using signals from a common UDP encapsulation
 layer can have equivalent necessary state information to that provided by TCP,
 reducing the friction between middleboxes and these new transport protocols.
@@ -167,21 +168,28 @@ as follows:
 - uniflow: a packet has been seen in one direction; state will be kept at the
   device until it is explicitly cancelled or until timeout t1 elapses without
   a packet.
-- biflow: a packet has been seen in one direction and an indication of consent
-  has been seen in the opposite direction; state will be kept at the device
-  until it is explicitly cancelled or until timeout t2 elapses without a
-  packet.
+- biflow: a packet has been seen in one direction and an indication that that 
+  the receiving endpoint wishes to continue the association has been seen in 
+  the opposite direction; state will be kept at the device until it is 
+  explicitly canceled or until timeout t2 elapses without a packet.
 - closing: an established biflow is shutting down due to an explicit close
   indication; state will be kept at the device until timeout t3 elapses.
 
-t1 is the unidirectional idle timeout. It can be considered equivalent to the
-idle timeout for transport protocols where the device has no information about
-session start and end (e.g. most UDP protocols). t2 is the bidirectional idle
-timeout. It can be considered equivalent to the timeout for transport
-protocols where the device has information about session start and end (e.g.
-TCP). t3 is the closing timeout: how long the device will wait for reordered
-packets after a stop signal. Selection of timeouts is a configuration and
-implementation detail, but generally t3 <= t1 < t2.
+The three timeouts are defined as follows:
+
+- t1 is the unidirectional idle timeout. It can be considered equivalent to
+  the idle timeout for transport protocols where the device has no information
+  about session start and end (e.g. most UDP protocols).
+- t2 is the bidirectional idle timeout. It can be considered equivalent to the 
+  timeout for transport protocols where the device has information about session 
+  start and end (e.g. TCP).
+- t3 is the closing timeout: how long the device will account additional packets 
+  to a flow after observing a stop signal, and is generally applied to ensuring
+  a reordered stop signal doesn't create a new flow.
+
+Selection of timeouts is a configuration and implementation detail, but
+generally t3 <= t1 < t2.
+
 
 ~~~~~~~~~~~~~
    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
@@ -192,41 +200,58 @@ implementation detail, but generally t3 <= t1 < t2.
   '   \      /<----------\       /<---+     '  STATES
   '    +----+   t1,stop   +-----+           '
   '_ _ _ ^_^ _ _ _ _ _ _ _ _ | _ _ _ _ _ _ _'
-      t3 |  \                | consent
+      t3 |  \                | association
          |   \__________     v 
        +-----+     t2   \  +----+
-      /       \   stop   \/      \----+    
+      /       \          \/      \----+    
      ( closing )<--------( biflow ) any-packet
-      \       /           \      /<---+    
+      \       /   stop    \      /<---+    
        +-----+             +----+
     
 ~~~~~~~~~~~~~
 {: #fig-states title="Transport-Independent State Machine for Stateful On-Path Devices"}
 
+## Uniflow States
+
 When a packet is received for a flow that the device has no state for, and it
 is configured to forward the packet instead of dropping it, it moves that flow
-from the zero state into the uniflow state and starts a timer t1. It
-resets this timer for any additional packet it forwards in the same direction
-as long as the flow remains in the uniflow state. When timer t1 expires, or
-when a stop signal is observed, the device drops state for the flow and
-performs any processing associated with doing so: tearing down NAT bindings,
-closing associated firewall pinholes, exporting flow information, and so on.
-Note that devices that see only a single direction of a flow only have these
-two states and the transitions between them.
+from the zero state into the uniflow state and starts a timer t1. It resets
+this timer for any additional packet it forwards in the same direction as long
+as the flow remains in the uniflow state. When timer t1 expires on a flow in
+the uniflow state, the device drops state for the flow and performs any
+processing associated with doing so: tearing down NAT bindings, closing
+associated firewall pinholes, exporting flow information, and so on. The
+device may also drop state on a stop signal, if observed.
 
-A uniflow becomes a biflow when the device observes a consent signal. A
-consent packet is a packet sent in the opposite direction from the packet sent
-with certain properties as defined in {{consent-signaling}}. After
-transitioning to the biflow state, the device starts a timer t2. It resets
-this timer for any packet it forwards in either direction. The biflow state
-represents a fully established bidirectional communication. When timer t2
-expires, the device assumes that the flow has shut down without signaling as
-such, and drops state for the flow, performing any associated processing. When
-a stop signal is observed in either direction, the flow transitions to the
-closing state.
+Some devices will only see one side of a communication, e.g. if they are
+placed in a portion of a network with asymmetric routing. These devices use
+only the zero and uniflow states (as marked in {{fig-states}}.) In addition,
+true uniflows -- protocols which are solely unidirectional (e.g. some
+applications over UDP) -- will also use only the uniflow-only states. In
+either case, current devices generally don't associate much state with
+observed uniflows flows, and timeout is generally sufficient to expire this
+state.
 
-When a flow enters the closing state, it starts a timer t3. When this timer
-expires, the device drops state for the flow, performing any associated processing.
+## Biflow States
+
+A uniflow transitions to the biflow state when the device observes an
+association signal. An association signal consists of a packet sent in the
+opposite direction from the uniflow packet(s), with certain properties as
+defined in {{association-signaling}}. After transitioning to the biflow
+state, the device starts a timer t2. It resets this timer for any packet it
+forwards in either direction. The biflow state represents a fully established
+bidirectional communication. When timer t2 expires, the device assumes that
+the flow has shut down without signaling as such, and drops state for the
+flow, performing any associated processing. When a stop signal is observed in
+either direction, the flow transitions to the closing state.
+
+When a flow enters the closing state, it starts a timer t3. While the stop
+signal should be the last packet on a flow, the t3 timer ensures that
+reordered packets after the stop signal will be accounted to the flow. When
+this timer expires, the device drops state for the flow, performing any
+associated processing.
+
+## Additional States
 
 Devices may augment the transitions in this state diagram depending on their
 function. For example, a firewall that decides based on some information
@@ -238,7 +263,7 @@ independent state maintenance.
 # Abstract Signaling Mechanisms
 
 The state machine in {{state-machine}} requires three signals: a packet (the
-first packet observed in a flow in the zero state), a consent signal (allowing
+first packet observed in a flow in the zero state), an association signal (allowing
 a device to verify that an endpoint wishes a bidirectional communication to be
 established or to continue), and a stop signal (noting that an endpoint wishes
 to stop a bidirectional communication). Additional related signals may also be
@@ -255,16 +280,19 @@ those given in {{draft-trammell-plus-abstract-mech}}:
 - Endpoints and devices on path can probabilistically verify that a originator
   of a signal is on-path.
 
-## Consent Signaling
+## Association Signaling
 
-A consent signal indicates that endpoint that received the first packet seen
+An association signal indicates that endpoint that received the first packet seen
 by the device is interested in continuing conversation with the sending
-endpoint. In TCP, the consent signal corresponding to a first packet with the
+endpoint. In TCP, the association signal corresponding to a first packet with the
 SYN flag set is a SYN-ACK packet sent in reply with an appropriate
 acknowledgment number. However, a transport-independent signal cannot rely on
 TCP-specific header fields.
 
-Transport-independent, path-verifiable consent signaling can be implemented
+Note that association signaling for this state machine is an in-band analogue to consent
+signaling in ICE {{RFC7675}}.
+
+Transport-independent, path-verifiable association signaling can be implemented
 using a association token generated by one endpoint, present on each packet
 sent in the flow by that endpoint, and a response token, derived from the
 association token using a well-known, defined function, present on each packet
@@ -274,15 +302,15 @@ association token is chosen by the initiator, and the response token generated
 by the responder.
 
 Any packet sent by the responder with a valid response token, and without a
-stop signal (see {{stop-signaling}}), can then be taken to be a consent signal
+stop signal (see {{stop-signaling}}), can then be taken to be a association signal
 to continue a bidirectional communication. Note that, since it relies on a
 widely-known function, this mechanism does allow on-path devices to forge
-consent signaling in a way that downstream on-path devices cannot detect.
+association signaling in a way that downstream on-path devices cannot detect.
 However, in the presence of end-to-end signal integrity verification, this
 forgery will be detected by the endpoint, which MUST terminate the association
-on a forged consent signal; the flow at the duped on-path device will
+on a forged association signal; the flow at the duped on-path device will
 transition from biflow to closing within a single packet. This reduces any
-attack against the consent signaling mechanism to the disruption of a
+attack against the association signaling mechanism to the disruption of a
 connection, which on-path devices can do in any case by simply refusing to
 forward packets.
 
@@ -299,16 +327,28 @@ response token given an association token.
 - Is the function symmetric (that is, do on-path devices do the same
   processing to verify a response token as the responder does to generate it),
   or asymmetric (where different processing is used on-path than at the
-  responder)?
-- If the function is asymmetric, is there only a single valid response token
-  for each association token, or multiple valid response tokens?
-- If the function is asymmetric, the verification process should be
-  computationally as complex or less complex than the generation process.
+  responder)? 
 - Is the function one-way or two-way? For one-way functions, it is difficult
   to generate an association token from a valid response token; for two-way
   functions, this difficulty does not exist. Using a two-way function may make
   it simpler to design on-path devices with reduced per-flow state 
   requirements.
+- If the function is asymmetric, is there only a single valid response token
+  for each association token, or multiple valid response tokens?
+- If the function is asymmetric, the verification process should be
+  computationally as complex or less complex than the generation process.
+
+Two possible functions for response token generation are simple one's
+complement of the association token (a two-way, symmetric function), or taking
+N bits from an SHA-2 hash of the association token (a one-way, symmetric
+function). Both provide some assurance of knowledge of the association token
+and implementation of the protocol. In any case, a concrete implementation of
+association signaling must choose a single function, or mechanism for
+unambiguously choosing one, at both endpoints as well as along the path.
+
+Note that if a concrete protocol driving this state machine requires the
+association and response tokens to be present on every packet, the token
+present identifies the direction of traffic.
 
 ## Stop Signaling
 
@@ -324,12 +364,12 @@ packets reordered in delivery are accounted to the flow before state for it is
 dropped.
 
 We assume the encoding of a stop signal into a packet header, as with all
-other signals, is integrity protected end-to-end. Stop signals, as consent
+other signals, is integrity protected end-to-end. Stop signals, as association
 signals, be forged by one on-path device to dupe other devices into moving
 flows into the closing state. However, state will be re-established by the
-continuing flow (and resulting consent signals) after the closing timeout, and
-an endpoint receiving a spoofed stop signal could enter a fast re-
-establishment phase of the upper layer transport protocol to minimize
+continuing flow (and resulting association signals) after the closing timeout, and
+an endpoint receiving a spoofed stop signal could enter a fast 
+re-establishment phase of the upper layer transport protocol to minimize
 disruption, further reducing the incentive to attackers to spoof stop signals.
 
 <!--
@@ -353,11 +393,11 @@ machine}} shows how devices currently using a model of the TCP state machine
 can be converted to use this state machine. 
 
 Simply speaking, the ACK flag {{RFC0793}} in the absence of the FIN or RST
-flags is synonymous with the consent signal, while the RST or final FIN flags
+flags is synonymous with the association signal, while the RST or final FIN flags
 are stop signals. For a typical TCP flow:
 
 1. The initial SYN places the flow into uniflow state,
-2. The SYN-ACK sent in reply acts as a consent signal and places the flow into biflow state,
+2. The SYN-ACK sent in reply acts as a association signal and places the flow into biflow state,
 3. Any RST moves the flow into closing state, or 
 4. The final FIN-ACK (not the first half-close FIN) moves the flow into closing state.
 
@@ -367,7 +407,16 @@ This document has no actions for IANA.
 
 # Security Considerations
 
-[EDITOR'S NOTE: reiterate why endpoint integrity protection is sufficient]
+This document defines a state machine for transport-independent state
+management on middleboxes, using in-band signaling, to replace the commonly-
+implemented current practice of incomplete TCP state modeling on these
+devices. It defines new signals for state management. While these signals can
+be spoofed by any device on path that observes traffic in both directions, we
+presume the presence of end-to-end integrity protection of these signals
+provided by the upper-layer transport driving them. This allows such spoofing
+to be detected and countered by endpoints, reducing the threat from on-path
+devices to connection disruption, which such devices are trivially placed to
+perform in any case.
 
 # Acknowledgments
 
