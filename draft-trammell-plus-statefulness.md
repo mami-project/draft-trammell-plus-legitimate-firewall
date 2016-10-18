@@ -37,7 +37,8 @@ informative:
   RFC0793:
   RFC2474:
   RFC7675:
-  I-D.hamilton-quic-transport-protocol:
+  I-D.hamilton-quic-transport-protocol:  
+  I-D.thomson-quic-tls:
   draft-trammell-plus-abstract-mech:
     title: Abstract Mechanisms for a Cooperative Path Layer under Endpoint Control
     abbrev: Path Layer Mechanisms
@@ -143,11 +144,7 @@ as the result of applying a function to the values of:
    (e.g., next-hop IP address, the output interface, etc.).
 
 A packet is defined as belonging to a flow if it completely satisfies all the
-defined properties of the flow. In general, the set of properties on deployed
-devices includes the source and destination IP address, the source and
-destination transport layer port number, the transport protocol number. The
-differentiated services field {{RFC2474}} may also be included in the set of
-properties defining a flow.
+defined properties of the flow. 
 
 A bidirectional flow or biflow is defined as compatible with {{RFC5103}}, by
 joining the "forward direction" flow with the "reverse direction" flow,
@@ -194,9 +191,9 @@ generally t3 <= t1 < t2.
 ~~~~~~~~~~~~~
    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   '                                         ' 
-  '    +----+   packet    +-----+           '  
+  '    +----+   p(s->d)   +-----+           '  
   '   /      \---------->/       \----+     '  UNIFLOW
-  '  (  zero  )         ( uniflow )  packet '  ONLY 
+  '  (  zero  )         ( uniflow ) p(s->d) '  ONLY 
   '   \      /<----------\       /<---+     '  STATES
   '    +----+      t1     +-----+           '
   '_ _ _ ^_^ _ _ _ _ _ _ _ _ | _ _ _ _ _ _ _'
@@ -204,7 +201,7 @@ generally t3 <= t1 < t2.
          |   \__________     v 
        +-----+     t2   \  +----+
       /       \          \/      \----+    
-     ( closing )<--------( biflow ) any-packet
+     ( closing )<--------( biflow ) p(s<->d)
       \       /   stop    \      /<---+    
        +-----+             +----+
     
@@ -213,15 +210,17 @@ generally t3 <= t1 < t2.
 
 ## Uniflow States
 
-When a packet is received for a flow that the device has no state for, and it
-is configured to forward the packet instead of dropping it, it moves that flow
-from the zero state into the uniflow state and starts a timer t1. It resets
-this timer for any additional packet it forwards in the same direction as long
-as the flow remains in the uniflow state. When timer t1 expires on a flow in
-the uniflow state, the device drops state for the flow and performs any
-processing associated with doing so: tearing down NAT bindings, closing
-associated firewall pinholes, exporting flow information, and so on. The
-device may also drop state on a stop signal, if observed.
+Every packet received by a device keeping per-flow state must associate that
+packet with a flow (see {{flow-identification}}). When a device receives a
+packet associated with a flow it has not state forward, and it is configured
+to forward the packet instead of dropping it, it moves that flow from the zero
+state into the uniflow state and starts a timer t1. It resets this timer for
+any additional packet it forwards in the same direction as long as the flow
+remains in the uniflow state. When timer t1 expires on a flow in the uniflow
+state, the device drops state for the flow and performs any processing
+associated with doing so: tearing down NAT bindings, closing associated
+firewall pinholes, exporting flow information, and so on. The device may also
+drop state on a stop signal, if observed.
 
 Some devices will only see one side of a communication, e.g. if they are
 placed in a portion of a network with asymmetric routing. These devices use
@@ -281,17 +280,27 @@ those given in {{draft-trammell-plus-abstract-mech}}:
 - Endpoints and devices on path can probabilistically verify that a originator
   of a signal is on-path.
 
+## Flow Identification
+
+In order to keep per-flow state, each device using this state machine must
+have a function it can apply to each packet to be able to extract common
+properties to identify the flow it is associated with. In general, the set of
+properties used for flow identification on presently deployed devices includes
+the source and destination IP address, the source and destination transport
+layer port number, the transport protocol number. The differentiated services
+field {{RFC2474}} may also be included in the set of properties defining a
+flow, since it may indicate different forwarding treatment.
+
+However, other protocols may use additional bits in their own headers for flow
+identification. In any case, a protocol implementing signaling for this state
+machine must specify the function used for flow identification.
+
 ## Association Signaling
 
 An association signal indicates that endpoint that received the first packet seen
 by the device is interested in continuing conversation with the sending
-endpoint. In TCP, the association signal corresponding to a first packet with the
-SYN flag set is a SYN-ACK packet sent in reply with an appropriate
-acknowledgment number. However, a transport-independent signal cannot rely on
-TCP-specific header fields.
-
-Note that association signaling for this state machine is an in-band analogue to consent
-signaling in ICE {{RFC7675}}.
+endpoint. This signal is roughly an in-band analogue to consent
+signaling in ICE {{RFC7675}} that is carried to every device along the path.
 
 Transport-independent, path-verifiable association signaling can be implemented
 using a association token generated by one endpoint, present on each packet
@@ -315,45 +324,31 @@ attack against the association signaling mechanism to the disruption of a
 connection, which on-path devices can do in any case by simply refusing to
 forward packets.
 
-Association tokens MUST be chosen by initiators to be hard to guess.
-Cryptographic random number generators suffice here. Note there is a tradeoff
-between per-packet overhead and state overhead at on-path devices, and
-assurance that an association token is hard to guess. This tradeoff must be
-evaluated at protocol design time.
+Association tokens MUST be chosen by initiators to be hard to guess;
+otherwise, off-path devices can spoof association and response signals.
+Cryptographic random number generators suffice here. In choosing the number of
+bits for an association token, there is a tradeoff between per-packet overhead
+and state overhead at on-path devices, and assurance that an association token
+is hard to guess. This tradeoff must be evaluated at protocol design time.
 
 There are a few considerations in choosing a function (or functions) to
 generate the response token from the association token, and to verify a
-response token given an association token.
+response token given an association token. The simplest such function is the
+identity function: the response token is simply the association token. Simple
+two-way functions (e.g. one's complement of the association token) provide
+additional assurance of implementation of the protocol, and cannot be
+accidentally triggered by simple reflection of unknown bits in a packet. One-
+way functions (e.g. truncated SHA-2 hash of the association token)
+additionally allow on-path recognition of initiator and responder from the
+middle of a flow.
 
-- Is the function symmetric (that is, do on-path devices do the same
-  processing to verify a response token as the responder does to generate it),
-  or asymmetric (where different processing is used on-path than at the
-  responder)? 
-- Is the function one-way or two-way? For one-way functions, it is difficult
-  to generate an association token from a valid response token; for two-way
-  functions, this difficulty does not exist. Using a two-way function may make
-  it simpler to design on-path devices with reduced per-flow state 
-  requirements.
-- If the function is asymmetric, is there only a single valid response token
-  for each association token, or multiple valid response tokens?
-- If the function is asymmetric, the verification process should be
-  computationally as complex or less complex than the generation process.
-
-Two possible functions for response token generation are simple one's
-complement of the association token (a two-way, symmetric function), or taking
-N bits from an SHA-2 hash of the association token (a one-way, symmetric
-function). Both provide some assurance of knowledge of the association token
-and implementation of the protocol. In any case, a concrete implementation of
+In any case, a concrete implementation of
 association signaling must choose a single function, or mechanism for
 unambiguously choosing one, at both endpoints as well as along the path.
 
-Note that if a concrete protocol driving this state machine requires the
-association and response tokens to be present on every packet, the token
-present identifies the direction of traffic.
-
 ## Stop Signaling
 
-A stop signal is a single bit directly carried or otherwise encoded in the protocol
+A stop signal is directly carried or otherwise encoded in the protocol
 header to indicate that a flow is ending, whether normally or abnormally, and
 that state associated with the flow should be torn down. Upon decoding a stop
 signal, a device on path should move the flow from uniflow state to null, or
@@ -387,20 +382,51 @@ protocols, they MAY be deployed together with a path-to-receiver signal with
 feedback as defined in {{draft-trammell-plus-abstract-mech}} asking for timeouts
 t1, t2, and t3 for a given flow.
 
+# Signal mappings for transport protocols
+
+We now show how this state machine can be driven by signals available in TCP and QUIC.
+
 ## Signal mapping for TCP
 
-A mapping of TCP flags to transitions in to the state machine in {{state-
-machine}} shows how devices currently using a model of the TCP state machine
+A mapping of TCP flags to transitions in to the state machine in 
+{{state-machine}} shows how devices currently using a model of the TCP state machine
 can be converted to use this state machine. 
 
-Simply speaking, the ACK flag {{RFC0793}} in the absence of the FIN or RST
-flags is synonymous with the association signal, while the RST or final FIN flags
-are stop signals. For a typical TCP flow:
+Simply speaking, an ACK flag {{RFC0793}} in the absence of the FIN or RST
+flags, and an in-window acknowledgment number, is synonymous with the
+association signal, while the RST or final FIN flags are stop signals. For a
+typical TCP flow:
 
 1. The initial SYN places the flow into uniflow state,
 2. The SYN-ACK sent in reply acts as a association signal and places the flow into biflow state,
 3. Any RST moves the flow into closing state, or 
 4. The final FIN-ACK (not the first half-close FIN) moves the flow into closing state.
+
+Note that since any valid ACK acts as an association signal, this mapping
+allows flows to transition to the biflow state even if the initial SYN-ACK is
+not observed. However, generating a stop signal from FIN does require
+additional TCP state modeling to prevent moving into the closing state on a
+half-close.
+
+Note that the association and stop signals derived from the TCP header are not
+integrity protected, and an association signal based on in-window ACK is not
+particularly resistant to off-path attacks; the state machine is therefore
+more susceptible to manipulation when used with vanilla TCP as when with a
+transport protocol providing full integrity protection for its headers end-to-
+end.
+
+## Signal mapping for QUIC
+
+QUIC {{I-D.hamilton-quic-transport-protocol}} as presently defined lacks only
+a stop signal to be able to drive this state machine. QUIC's 64-bit connection
+ID suffices as an association and response token as in 
+{{association-signaling}}; the response token function is identity. QUIC's cryptographic
+protocol, to be based on TLS {{I-D.thomson-quic-tls}}, will provide the
+necessary integrity protection to drive the state machine.
+
+The most promising route to adding a stop signal to QUIC involves expanding
+the Public Reset facility ({{I-D.hamilton-quic-transport-protocol}} section 8)
+to expose both reset and normal termination.
 
 # IANA Considerations
 
