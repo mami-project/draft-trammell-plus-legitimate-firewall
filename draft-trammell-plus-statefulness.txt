@@ -5,8 +5,8 @@
 Network Working Group                                      M. Kuehlewind
 Internet-Draft                                               B. Trammell
 Intended status: Informational                                ETH Zurich
-Expires: April 21, 2017                                    J. Hildebrand
-                                                        October 18, 2016
+Expires: April 22, 2017                                    J. Hildebrand
+                                                        October 19, 2016
 
 
            Transport-Independent Path Layer State Management
@@ -38,7 +38,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on April 21, 2017.
+   This Internet-Draft will expire on April 22, 2017.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                 [Page 1]
+Kuehlewind, et al.       Expires April 22, 2017                 [Page 1]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                 [Page 2]
+Kuehlewind, et al.       Expires April 22, 2017                 [Page 2]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -165,7 +165,7 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                 [Page 3]
+Kuehlewind, et al.       Expires April 22, 2017                 [Page 3]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -221,7 +221,7 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                 [Page 4]
+Kuehlewind, et al.       Expires April 22, 2017                 [Page 4]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -277,7 +277,7 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                 [Page 5]
+Kuehlewind, et al.       Expires April 22, 2017                 [Page 5]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -333,7 +333,7 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                 [Page 6]
+Kuehlewind, et al.       Expires April 22, 2017                 [Page 6]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -389,7 +389,7 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                 [Page 7]
+Kuehlewind, et al.       Expires April 22, 2017                 [Page 7]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -445,7 +445,7 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                 [Page 8]
+Kuehlewind, et al.       Expires April 22, 2017                 [Page 8]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -501,7 +501,7 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                 [Page 9]
+Kuehlewind, et al.       Expires April 22, 2017                 [Page 9]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -511,7 +511,7 @@ Internet-Draft              PLUS Statefulness               October 2016
    on in-window ACK is not particularly resistant to off-path attacks;
    the state machine is therefore more susceptible to manipulation when
    used with vanilla TCP as when with a transport protocol providing
-   full integrity protection for its headers end-to- end.
+   full integrity protection for its headers end-to-end.
 
 5.2.  Signal mapping for QUIC
 
@@ -523,10 +523,13 @@ Internet-Draft              PLUS Statefulness               October 2016
    [I-D.thomson-quic-tls], will provide the necessary integrity
    protection to drive the state machine.
 
-   The most promising route to adding a stop signal to QUIC involves
-   expanding the Public Reset facility
-   ([I-D.hamilton-quic-transport-protocol] section 8) to expose both
-   reset and normal termination.
+   Any number of designs could be chosen to add a stop signal compatible
+   with the definition in Section 4.3 to QUIC.  One is particularly
+   promising, however.  We note that the Public Reset facility described
+   in section 8 of [I-D.hamilton-quic-transport-protocol] very nearly
+   meets the criteria; it would need to be expanded to expose normal
+   termination as well as abnormal termination, and to provide for
+   endpoint detection of inauthentic termination signals.
 
 6.  IANA Considerations
 
@@ -550,18 +553,18 @@ Internet-Draft              PLUS Statefulness               October 2016
 
    Thanks to Christian Huitema for discussions leading to this document.
 
-   This work is partially supported by the European Commission under
-   Horizon 2020 grant agreement no. 688421 Measurement and Architecture
-   for a Middleboxed Internet (MAMI), and by the Swiss State Secretariat
 
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                [Page 10]
+Kuehlewind, et al.       Expires April 22, 2017                [Page 10]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
 
+   This work is partially supported by the European Commission under
+   Horizon 2020 grant agreement no. 688421 Measurement and Architecture
+   for a Middleboxed Internet (MAMI), and by the Swiss State Secretariat
    for Education, Research, and Innovation under contract no. 15.0268.
    This support does not imply endorsement.
 
@@ -610,10 +613,7 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 
 
-
-
-
-Kuehlewind, et al.       Expires April 21, 2017                [Page 11]
+Kuehlewind, et al.       Expires April 22, 2017                [Page 11]
 
 Internet-Draft              PLUS Statefulness               October 2016
 
@@ -669,4 +669,4 @@ Authors' Addresses
 
 
 
-Kuehlewind, et al.       Expires April 21, 2017                [Page 12]
+Kuehlewind, et al.       Expires April 22, 2017                [Page 12]

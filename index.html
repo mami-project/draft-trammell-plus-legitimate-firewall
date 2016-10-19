@@ -296,7 +296,7 @@ li, p {
 
   <meta name="dct.creator" content="Kuehlewind, M., Trammell, B., and J. Hildebrand" />
   <meta name="dct.identifier" content="urn:ietf:id:draft-trammell-plus-statefulness-00" />
-  <meta name="dct.issued" scheme="ISO8601" content="2016-10-18" />
+  <meta name="dct.issued" scheme="ISO8601" content="2016-10-19" />
   <meta name="dct.abstract" content="This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or incomplete forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows." />
   <meta name="description" content="This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or incomplete forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows." />
 
@@ -320,12 +320,12 @@ li, p {
   <td class="right">ETH Zurich</td>
 </tr>
 <tr>
-  <td class="left">Expires: April 21, 2017</td>
+  <td class="left">Expires: April 22, 2017</td>
   <td class="right">J. Hildebrand</td>
 </tr>
 <tr>
   <td class="left"></td>
-  <td class="right">October 18, 2016</td>
+  <td class="right">October 19, 2016</td>
 </tr>
 
     	
@@ -345,7 +345,7 @@ li, p {
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at http://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on April 21, 2017.</p>
+<p>This Internet-Draft will expire on April 22, 2017.</p>
 <h1 id="rfc.copyrightnotice">
   <a href="#rfc.copyrightnotice">Copyright Notice</a>
 </h1>
@@ -485,10 +485,10 @@ li, p {
   <li>The final FIN-ACK (not the first half-close FIN) moves the flow into closing state.</li>
 </ol>
 <p id="rfc.section.5.1.p.4">Note that since any valid ACK acts as an association signal, this mapping allows flows to transition to the biflow state even if the initial SYN-ACK is not observed. However, generating a stop signal from FIN does require additional TCP state modeling to prevent moving into the closing state on a half-close.</p>
-<p id="rfc.section.5.1.p.5">Note that the association and stop signals derived from the TCP header are not integrity protected, and an association signal based on in-window ACK is not particularly resistant to off-path attacks; the state machine is therefore more susceptible to manipulation when used with vanilla TCP as when with a transport protocol providing full integrity protection for its headers end-to- end.</p>
+<p id="rfc.section.5.1.p.5">Note that the association and stop signals derived from the TCP header are not integrity protected, and an association signal based on in-window ACK is not particularly resistant to off-path attacks; the state machine is therefore more susceptible to manipulation when used with vanilla TCP as when with a transport protocol providing full integrity protection for its headers end-to-end.</p>
 <h1 id="rfc.section.5.2"><a href="#rfc.section.5.2">5.2.</a> <a href="#signal-mapping-for-quic" id="signal-mapping-for-quic">Signal mapping for QUIC</a></h1>
 <p id="rfc.section.5.2.p.1">QUIC <a href="#I-D.hamilton-quic-transport-protocol">[I-D.hamilton-quic-transport-protocol]</a> as presently defined lacks only a stop signal to be able to drive this state machine. QUIC&#8217;s 64-bit connection ID suffices as an association and response token as in <a href="#association-signaling">Section 4.2</a>; the response token function is identity. QUIC&#8217;s cryptographic protocol, to be based on TLS <a href="#I-D.thomson-quic-tls">[I-D.thomson-quic-tls]</a>, will provide the necessary integrity protection to drive the state machine.</p>
-<p id="rfc.section.5.2.p.2">The most promising route to adding a stop signal to QUIC involves expanding the Public Reset facility (<a href="#I-D.hamilton-quic-transport-protocol">[I-D.hamilton-quic-transport-protocol]</a> section 8) to expose both reset and normal termination.</p>
+<p id="rfc.section.5.2.p.2">Any number of designs could be chosen to add a stop signal compatible with the definition in <a href="#stop-signaling">Section 4.3</a> to QUIC. One is particularly promising, however. We note that the Public Reset facility described in  section 8 of <a href="#I-D.hamilton-quic-transport-protocol">[I-D.hamilton-quic-transport-protocol]</a> very nearly meets the criteria; it would need to be expanded to expose normal termination as well as abnormal termination, and to provide for endpoint detection of inauthentic termination signals.</p>
 <h1 id="rfc.section.6"><a href="#rfc.section.6">6.</a> <a href="#iana-considerations" id="iana-considerations">IANA Considerations</a></h1>
 <p id="rfc.section.6.p.1">This document has no actions for IANA.</p>
 <h1 id="rfc.section.7"><a href="#rfc.section.7">7.</a> <a href="#security-considerations" id="security-considerations">Security Considerations</a></h1>
