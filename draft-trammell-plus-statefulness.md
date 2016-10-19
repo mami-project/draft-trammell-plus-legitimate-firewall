@@ -412,8 +412,8 @@ Note that the association and stop signals derived from the TCP header are not
 integrity protected, and an association signal based on in-window ACK is not
 particularly resistant to off-path attacks; the state machine is therefore
 more susceptible to manipulation when used with vanilla TCP as when with a
-transport protocol providing full integrity protection for its headers end-to-
-end.
+transport protocol providing full integrity protection for its headers 
+end-to-end.
 
 ## Signal mapping for QUIC
 
@@ -424,9 +424,13 @@ ID suffices as an association and response token as in
 protocol, to be based on TLS {{I-D.thomson-quic-tls}}, will provide the
 necessary integrity protection to drive the state machine.
 
-The most promising route to adding a stop signal to QUIC involves expanding
-the Public Reset facility ({{I-D.hamilton-quic-transport-protocol}} section 8)
-to expose both reset and normal termination.
+Any number of designs could be chosen to add a stop signal compatible with the
+definition in {{stop-signaling}} to QUIC. One is particularly promising,
+however. We note that the Public Reset facility described in  section 8 of
+{{I-D.hamilton-quic-transport-protocol}} very nearly meets the criteria; it
+would need to be expanded to expose normal termination as well as abnormal
+termination, and to provide for endpoint detection of inauthentic termination
+signals.
 
 # IANA Considerations
 
