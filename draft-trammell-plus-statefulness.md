@@ -262,14 +262,14 @@ packets in the uniflow state until an association signal is observed.
 
 # Abstract Signaling Mechanisms
 
-The state machine in {{state-machine}} requires three signals: a packet (the
-first packet observed in a flow in the zero state), an association signal (allowing
-a device to verify that an endpoint wishes a bidirectional communication to be
-established or to continue), and a stop signal (noting that an endpoint wishes
-to stop a bidirectional communication). Additional related signals may also be
-useful, depending on the function a device provides. There are a few different
-ways to implement these signals; here, we explore the properties of some
-potential implementations.
+The state machine in {{state-machine}} requires three signals: a new flow
+signal (the first packet observed in a flow in the zero state), an
+association signal (allowing a device to verify that an endpoint wishes a
+bidirectional communication to be established or to continue), and a stop
+signal (noting that an endpoint wishes to stop a bidirectional communication).
+Additional related signals may also be useful, depending on the function a
+device provides. There are a few different ways to implement these signals;
+here, we explore the properties of some potential implementations.
 
 We assume the following general requirements for these signals; parallel to
 those given in {{draft-trammell-plus-abstract-mech}}:
