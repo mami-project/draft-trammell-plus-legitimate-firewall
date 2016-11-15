@@ -1,7 +1,7 @@
 ---
 title: Transport-Independent Path Layer State Management
 abbrev: PLUS Statefulness
-docname: draft-trammell-plus-statefulness-00
+docname: draft-trammell-plus-statefulness-01
 date:
 category: info
 
@@ -155,6 +155,14 @@ of the service demarcation point for either endpoint as defined in the
 reference path given in {{RFC7398}}.
 
 # State Machine
+
+[EDITOR'S NOTE: inputs from Seoul meeting: (1) may need an
+associating->associated transition to get three packets instead of two? since
+this does *not* mean the initator saw the associating packet, unless the
+association signal includes a proof of RT. (2) need a return from stop to
+biflow on stop cancellation, to keep state from being dropped and recycled,
+recovering from stop injection. This itself needs to be designed to keep it
+from being a reflection vector.]
 
 The transport-independent state machine for on-path devices is shown in 
 {{fig-states}}. It relies on four states, three configurable timeouts, and a set of
@@ -368,12 +376,6 @@ an endpoint receiving a spoofed stop signal could enter a fast
 re-establishment phase of the upper layer transport protocol to minimize
 disruption, further reducing the incentive to attackers to spoof stop signals.
 
-<!--
-## Header-Only Forwarding
-
-[EDITOR'S NOTE: probably cut this, since it is extremely expensive to implement on path; potentially move it to the plus protocol document as an optional feature, since it makes some assumptions about PLUS we don't here: A network device in "no state" might only forward the unencrypted/header parts of a packet to transition to "biflow" state without forwarding unknow data. A PLUS receiver MUST reply with a (PLUS-only) packet (within a given time frame). On receiption of this PLUS-only packet, the network device tranits in "biflow" state and SHOULD resend the whole packet including the encrypted data while dropping a PLUS-only packet. If the network device was not able to store the encrypted data, it forwards the PLUS-only packet to the original sending endpoint which then can be used as a fast trigger that the original encrypted data was not received by the intented receiving endpoint.]
--->
-
 ## Timeout Exposure
 
 Since one of the goals of these mechanisms is to reduce the amount of non-
@@ -381,6 +383,24 @@ productive keepalive traffic required for UDP-encapsulated transport
 protocols, they MAY be deployed together with a path-to-receiver signal with
 feedback as defined in {{draft-trammell-plus-abstract-mech}} asking for timeouts
 t1, t2, and t3 for a given flow.
+
+# Deployment Considerations
+
+## Middlebox Deployment
+
+[EDITOR'S NOTE: write me: why would a middlebox use this state machine? common
+state signaling allows them to use TCP-like logic for handling UDP; with a
+single wire format, recognizing this wire format can differentiate UDP with
+an overlaying transport from unclassified UDP. making this wire format
+obvious to recognize should increase deployment: note that implementors of these
+devices may use reverse engineering instead of reading the spec.]
+
+## Endpoint Deployment
+
+[EDITOR'S NOTE: write me: why would an endpoint want to expose this
+information? Reduce the need to send keepalives for long-lived flows;
+maintain UDP connectivity on networks that otherwise wouldn't provide it. Is
+there a day-one story?]
 
 # Signal mappings for transport protocols
 
