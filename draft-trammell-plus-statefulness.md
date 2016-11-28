@@ -172,14 +172,6 @@ reference path given in {{RFC7398}}.
 
 # State Machine
 
-[EDITOR'S NOTE: inputs from Seoul meeting: (1) we need an
-associating->associated transition to get three packets instead of two, for a
-return routability "proof". That third packet can't simply be 'two packets in
-this direction'; the third has to prove the source saw the second. (2) need a
-return from stop to biflow on stop cancellation, to keep state from being
-dropped and recycled, recovering from stop injection. This itself needs to be
-designed to keep it from being a reflection vector.]
-
 A transport-independent state machine for on-path devices is shown in
 {{fig-states}}. It was designed to have the following properties:
 
@@ -455,14 +447,6 @@ result of a chosen cryptographic hash function applied to a stop token which
 that endpoint keeps secret. An endpoint wishing to end the association then
 reveals the stop token, which can be verified both by the far endpoint and
 devices on path which have cached the stop hash to be authentic.
-
-## Timeout Exposure
-
-Since one of the goals of these mechanisms is to reduce the amount of non-
-productive keepalive traffic required for UDP-encapsulated transport
-protocols, they may be deployed together with a path-to-receiver signal with
-feedback as defined in {{draft-trammell-plus-abstract-mech}} asking for
-timeouts for a given flow.
 
 # Deployment Considerations
 
