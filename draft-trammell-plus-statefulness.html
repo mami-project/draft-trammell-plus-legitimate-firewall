@@ -287,7 +287,6 @@ address {
 <link href="#rfc.section.4.1" rel="Chapter" title="4.1 Flow Identification"/>
 <link href="#rfc.section.4.2" rel="Chapter" title="4.2 Association and Confirmation Signaling"/>
 <link href="#rfc.section.4.3" rel="Chapter" title="4.3 Stop Signaling"/>
-<link href="#rfc.section.4.4" rel="Chapter" title="4.4 Timeout Exposure"/>
 <link href="#rfc.section.5" rel="Chapter" title="5 Deployment Considerations"/>
 <link href="#rfc.section.5.1" rel="Chapter" title="5.1 Middlebox Deployment"/>
 <link href="#rfc.section.5.2" rel="Chapter" title="5.2 Endpoint Deployment"/>
@@ -379,7 +378,6 @@ address {
 <ul><li>4.1.   <a href="#rfc.section.4.1">Flow Identification</a></li>
 <li>4.2.   <a href="#rfc.section.4.2">Association and Confirmation Signaling</a></li>
 <li>4.3.   <a href="#rfc.section.4.3">Stop Signaling</a></li>
-<li>4.4.   <a href="#rfc.section.4.4">Timeout Exposure</a></li>
 </ul><li>5.   <a href="#rfc.section.5">Deployment Considerations</a></li>
 <ul><li>5.1.   <a href="#rfc.section.5.1">Middlebox Deployment</a></li>
 <li>5.2.   <a href="#rfc.section.5.2">Endpoint Deployment</a></li>
@@ -414,16 +412,15 @@ address {
 <p id="rfc.section.2.p.3">A packet is defined as belonging to a flow if it completely satisfies all the defined properties of the flow.</p>
 <p id="rfc.section.2.p.4">A bidirectional flow or biflow is defined as compatible with <a href="#RFC5103">[RFC5103]</a>, by joining the &#8220;forward direction&#8221; flow with the &#8220;reverse direction&#8221; flow, derived by reversing the direction of directional fields (ports and IP addresses). Biflows are only relevant at devices positioned so as to see all the packets in both directions of the biflow, generally on the endpoint side of the service demarcation point for either endpoint as defined in the reference path given in <a href="#RFC7398">[RFC7398]</a>.</p>
 <h1 id="rfc.section.3"><a href="#rfc.section.3">3.</a> <a href="#state-machine" id="state-machine">State Machine</a></h1>
-<p id="rfc.section.3.p.1">[EDITOR&#8217;S NOTE: inputs from Seoul meeting: (1) we need an associating-&gt;associated transition to get three packets instead of two, for a return routability &#8220;proof&#8221;. That third packet can&#8217;t simply be &#8216;two packets in this direction&#8217;; the third has to prove the source saw the second. (2) need a return from stop to biflow on stop cancellation, to keep state from being dropped and recycled, recovering from stop injection. This itself needs to be designed to keep it from being a reflection vector.]</p>
-<p id="rfc.section.3.p.2">A transport-independent state machine for on-path devices is shown in <a href="#fig-states">Figure 1</a>. It was designed to have the following properties:</p>
+<p id="rfc.section.3.p.1">A transport-independent state machine for on-path devices is shown in <a href="#fig-states">Figure 1</a>. It was designed to have the following properties:</p>
 <p/>
 
 <ul>
   <li>A device on path that can see traffic in both directions between two endpoints knows that each side of an association wishes that association to continue. This allows firewalls to delegate policy decisions about accepting or continuing an association to the servers they protect.</li>
   <li>A device on path that can see traffic in both directions between two endpoints knows that each device can receive traffic at the source address it provides. This allows firewalls to provide protection against trivially spoofed packets.</li>
 </ul>
-<p id="rfc.section.3.p.4">Both of these properties hold with current firewalls and network address translation devices observing the flags and sequence/acknowledgment numbers exposed by TCP.</p>
-<p id="rfc.section.3.p.5">It relies on five states, three configurable timeouts, and a set of signals defined in <a href="#abstract-signaling-mechanisms">Section 4</a>. The states are defined as follows:</p>
+<p id="rfc.section.3.p.3">Both of these properties hold with current firewalls and network address translation devices observing the flags and sequence/acknowledgment numbers exposed by TCP.</p>
+<p id="rfc.section.3.p.4">It relies on five states, three configurable timeouts, and a set of signals defined in <a href="#abstract-signaling-mechanisms">Section 4</a>. The states are defined as follows:</p>
 <p/>
 
 <ul>
@@ -433,7 +430,7 @@ address {
   <li>associated: a flow in associating state has further demonstrated that the initial sender can receive packets at its given source address.</li>
   <li>closing: an association is shutting down due to an explicit close signal.</li>
 </ul>
-<p id="rfc.section.3.p.7">We refer to the zero and uniflow states as &#8220;uniflow states&#8221;, as they are relevant both for truly unidirectional flows, as well as in situations where an on-path device can see only one side of a communication. We refer to the remaining three states as &#8220;biflow states&#8221;, as they are only applicable to true bidirectional flows, where the on-path device can see both sides of the communication.</p>
+<p id="rfc.section.3.p.6">We refer to the zero and uniflow states as &#8220;uniflow states&#8221;, as they are relevant both for truly unidirectional flows, as well as in situations where an on-path device can see only one side of a communication. We refer to the remaining three states as &#8220;biflow states&#8221;, as they are only applicable to true bidirectional flows, where the on-path device can see both sides of the communication.</p>
 <div id="rfc.figure.1"/>
 <div id="fig-states"/>
 <pre>
@@ -464,7 +461,7 @@ address {
     
 </pre>
 <p class="figure">Figure 1: Transport-Independent State Machine for Stateful On-Path Devices</p>
-<p id="rfc.section.3.p.8">The three timeouts are defined as follows:</p>
+<p id="rfc.section.3.p.7">The three timeouts are defined as follows:</p>
 <p/>
 
 <ul>
@@ -472,7 +469,7 @@ address {
   <li>TO_ASSOCIATED, the bidirectional idle timeout, can be considered equivalent to the timeout for transport protocols where the device has information about session start and end (e.g. TCP).</li>
   <li>TO_CLOSING is the closing timeout: how long the device will account additional packets to a flow after observing a stop signal, ensuring a reordered stop signal doesn&#8217;t create a new flow.</li>
 </ul>
-<p id="rfc.section.3.p.10">Selection of timeouts is a configuration and implementation detail, but generally TO_CLOSING &lt;= TO_IDLE &#171;&#160;TO_ASSOCIATED; see <a href="#IMC-GATEWAYS">[IMC-GATEWAYS]</a>.</p>
+<p id="rfc.section.3.p.9">Selection of timeouts is a configuration and implementation detail, but generally TO_CLOSING &lt;= TO_IDLE &#171;&#160;TO_ASSOCIATED; see <a href="#IMC-GATEWAYS">[IMC-GATEWAYS]</a>.</p>
 <h1 id="rfc.section.3.1"><a href="#rfc.section.3.1">3.1.</a> <a href="#uniflow-states" id="uniflow-states">Uniflow States</a></h1>
 <p id="rfc.section.3.1.p.1">Every packet received by a device keeping per-flow state must associate that packet with a flow (see <a href="#flow-identification">Section 4.1</a>). When a device receives a packet associated with a flow it has no state for, and it is configured to forward the packet instead of dropping it, it moves that flow from the zero state into the uniflow state and starts a timer TO_IDLE. It resets this timer for any additional packet it forwards in the same direction as long as the flow remains in the uniflow state. When timer TO_IDLE expires on a flow in the uniflow state, the device drops state for the flow and performs any processing associated with doing so: tearing down NAT bindings, closing associated firewall pinholes, exporting flow information, and so on. The device may also drop state on a stop signal, if observed.</p>
 <p id="rfc.section.3.1.p.2">Some devices will only see one side of a communication, e.g. if they are placed in a portion of a network with asymmetric routing. These devices use only the zero and uniflow states (as marked in <a href="#fig-states">Figure 1</a>.) In addition, true uniflows &#8211; protocols which are solely unidirectional (e.g. some applications over UDP) &#8211; will also use only the uniflow-only states. In either case, current devices generally don&#8217;t associate much state with observed uniflows, and an idle timeout is generally sufficient to expire this state.</p>
@@ -509,8 +506,6 @@ address {
 <p id="rfc.section.4.3.p.2">Transports should send a stop signal only on the last packet sent in a bidirectional flow. The closing timeout TO_CLOSING is intended to ensure that any packets reordered in delivery are accounted to the flow before state for it is dropped.</p>
 <p id="rfc.section.4.3.p.3">We assume the encoding of a stop signal into a packet header, as with all other signals, is integrity protected end-to-end. Stop signals, as association signals, could be forged by one on-path device to dupe other devices into moving flows into the closing state. However, state will be re-established by the continuing flow (and resulting association signals) after the closing timeout, and an endpoint receiving a spoofed stop signal could enter a fast re-establishment phase of the upper layer transport protocol to minimize disruption, further reducing the incentive to attackers to spoof stop signals.</p>
 <p id="rfc.section.4.3.p.4">Alternatively, the stop signal could be designed to authenticate itself. Each endpoint could reveal a stop hash during the initial association, which is the result of a chosen cryptographic hash function applied to a stop token which that endpoint keeps secret. An endpoint wishing to end the association then reveals the stop token, which can be verified both by the far endpoint and devices on path which have cached the stop hash to be authentic.</p>
-<h1 id="rfc.section.4.4"><a href="#rfc.section.4.4">4.4.</a> <a href="#timeout-exposure" id="timeout-exposure">Timeout Exposure</a></h1>
-<p id="rfc.section.4.4.p.1">Since one of the goals of these mechanisms is to reduce the amount of non- productive keepalive traffic required for UDP-encapsulated transport protocols, they may be deployed together with a path-to-receiver signal with feedback as defined in <a href="#draft-trammell-plus-abstract-mech">[draft-trammell-plus-abstract-mech]</a> asking for timeouts for a given flow.</p>
 <h1 id="rfc.section.5"><a href="#rfc.section.5">5.</a> <a href="#deployment-considerations" id="deployment-considerations">Deployment Considerations</a></h1>
 <p id="rfc.section.5.p.1">The state machine defined in this document is most useful when implemented in a single instantiation (wire format for signals, and selection of functions for deriving values to be exposed and verified) by multiple transport protocols. It is intended for use with protocols that encrypt their transport- layer headers, and that are encapsulated within UDP, as is the case with QUIC <a href="#I-D.hamilton-quic-transport-protocol">[I-D.hamilton-quic-transport-protocol]</a>. Definition of that instantiation is out of scope for the present revision of this document.</p>
 <p id="rfc.section.5.p.2">The following subsections discuss incentives for deployment of this state machine both at middleboxes and at endpoints.</p>
