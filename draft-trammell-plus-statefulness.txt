@@ -5,12 +5,12 @@
 Network Working Group                                      M. Kuehlewind
 Internet-Draft                                               B. Trammell
 Intended status: Informational                                ETH Zurich
-Expires: April 22, 2017                                    J. Hildebrand
-                                                        October 19, 2016
+Expires: June 1, 2017                                      J. Hildebrand
+                                                       November 28, 2016
 
 
            Transport-Independent Path Layer State Management
-                  draft-trammell-plus-statefulness-00
+                  draft-trammell-plus-statefulness-01
 
 Abstract
 
@@ -38,7 +38,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on April 22, 2017.
+   This Internet-Draft will expire on June 1, 2017.
 
 Copyright Notice
 
@@ -53,9 +53,9 @@ Copyright Notice
 
 
 
-Kuehlewind, et al.       Expires April 22, 2017                 [Page 1]
+Kuehlewind, et al.        Expires June 1, 2017                  [Page 1]
 
-Internet-Draft              PLUS Statefulness               October 2016
+Internet-Draft              PLUS Statefulness              November 2016
 
 
    to this document.  Code Components extracted from this document must
@@ -68,24 +68,27 @@ Table of Contents
    1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
    2.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   3
    3.  State Machine . . . . . . . . . . . . . . . . . . . . . . . .   4
-     3.1.  Uniflow States  . . . . . . . . . . . . . . . . . . . . .   5
+     3.1.  Uniflow States  . . . . . . . . . . . . . . . . . . . . .   6
      3.2.  Biflow States . . . . . . . . . . . . . . . . . . . . . .   6
-     3.3.  Additional States and Actions . . . . . . . . . . . . . .   6
-   4.  Abstract Signaling Mechanisms . . . . . . . . . . . . . . . .   6
-     4.1.  Flow Identification . . . . . . . . . . . . . . . . . . .   7
-     4.2.  Association Signaling . . . . . . . . . . . . . . . . . .   7
-     4.3.  Stop Signaling  . . . . . . . . . . . . . . . . . . . . .   8
-     4.4.  Timeout Exposure  . . . . . . . . . . . . . . . . . . . .   9
-   5.  Signal mappings for transport protocols . . . . . . . . . . .   9
-     5.1.  Signal mapping for TCP  . . . . . . . . . . . . . . . . .   9
-     5.2.  Signal mapping for QUIC . . . . . . . . . . . . . . . . .  10
-   6.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  10
-   7.  Security Considerations . . . . . . . . . . . . . . . . . . .  10
-   8.  Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .  10
-   9.  References  . . . . . . . . . . . . . . . . . . . . . . . . .  11
-     9.1.  Normative References  . . . . . . . . . . . . . . . . . .  11
-     9.2.  Informative References  . . . . . . . . . . . . . . . . .  11
-   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  12
+     3.3.  Additional States and Actions . . . . . . . . . . . . . .   7
+   4.  Abstract Signaling Mechanisms . . . . . . . . . . . . . . . .   7
+     4.1.  Flow Identification . . . . . . . . . . . . . . . . . . .   8
+     4.2.  Association and Confirmation Signaling  . . . . . . . . .   8
+     4.3.  Stop Signaling  . . . . . . . . . . . . . . . . . . . . .  10
+     4.4.  Timeout Exposure  . . . . . . . . . . . . . . . . . . . .  10
+   5.  Deployment Considerations . . . . . . . . . . . . . . . . . .  10
+     5.1.  Middlebox Deployment  . . . . . . . . . . . . . . . . . .  11
+     5.2.  Endpoint Deployment . . . . . . . . . . . . . . . . . . .  11
+   6.  Signal mappings for transport protocols . . . . . . . . . . .  11
+     6.1.  Signal mapping for TCP  . . . . . . . . . . . . . . . . .  12
+     6.2.  Signal mapping for QUIC . . . . . . . . . . . . . . . . .  12
+   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  13
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  13
+   9.  Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .  13
+   10. References  . . . . . . . . . . . . . . . . . . . . . . . . .  13
+     10.1.  Normative References . . . . . . . . . . . . . . . . . .  13
+     10.2.  Informative References . . . . . . . . . . . . . . . . .  14
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  15
 
 1.  Introduction
 
@@ -102,17 +105,17 @@ Table of Contents
    desirable flows from backscatter and random attack traffic, and
    devices which keep per-flow state for reporting and monitoring
    purposes (e.g.  IPFIX [RFC7011] Metering Processes), has broken this
+
+
+
+
+Kuehlewind, et al.        Expires June 1, 2017                  [Page 2]
+
+Internet-Draft              PLUS Statefulness              November 2016
+
+
    assumption, and made it more difficult to deploy non-TCP transport
    protocols in the Internet.
-
-
-
-
-
-Kuehlewind, et al.       Expires April 22, 2017                 [Page 2]
-
-Internet-Draft              PLUS Statefulness               October 2016
-
 
    The deployment of new transport protocols encapsulated in UDP with
    encrypted transport headers (such as QUIC
@@ -158,18 +161,19 @@ Internet-Draft              PLUS Statefulness               October 2016
    A packet is defined as belonging to a flow if it completely satisfies
    all the defined properties of the flow.
 
+
+
+
+
+Kuehlewind, et al.        Expires June 1, 2017                  [Page 3]
+
+Internet-Draft              PLUS Statefulness              November 2016
+
+
    A bidirectional flow or biflow is defined as compatible with
    [RFC5103], by joining the "forward direction" flow with the "reverse
    direction" flow, derived by reversing the direction of directional
    fields (ports and IP addresses).  Biflows are only relevant at
-
-
-
-Kuehlewind, et al.       Expires April 22, 2017                 [Page 3]
-
-Internet-Draft              PLUS Statefulness               October 2016
-
-
    devices positioned so as to see all the packets in both directions of
    the biflow, generally on the endpoint side of the service demarcation
    point for either endpoint as defined in the reference path given in
@@ -177,89 +181,137 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 3.  State Machine
 
-   The transport-independent state machine for on-path devices is shown
-   in Figure 1.  It relies on four states, three configurable timeouts,
-   and a set of signals defined in Section 4.  The states are defined as
-   follows:
+   [EDITOR'S NOTE: inputs from Seoul meeting: (1) we need an
+   associating->associated transition to get three packets instead of
+   two, for a return routability "proof".  That third packet can't
+   simply be 'two packets in this direction'; the third has to prove the
+   source saw the second. (2) need a return from stop to biflow on stop
+   cancellation, to keep state from being dropped and recycled,
+   recovering from stop injection.  This itself needs to be designed to
+   keep it from being a reflection vector.]
+
+   A transport-independent state machine for on-path devices is shown in
+   Figure 1.  It was designed to have the following properties:
+
+   o  A device on path that can see traffic in both directions between
+      two endpoints knows that each side of an association wishes that
+      association to continue.  This allows firewalls to delegate policy
+      decisions about accepting or continuing an association to the
+      servers they protect.
+
+   o  A device on path that can see traffic in both directions between
+      two endpoints knows that each device can receive traffic at the
+      source address it provides.  This allows firewalls to provide
+      protection against trivially spoofed packets.
+
+   Both of these properties hold with current firewalls and network
+   address translation devices observing the flags and sequence/
+   acknowledgment numbers exposed by TCP.
+
+   It relies on five states, three configurable timeouts, and a set of
+   signals defined in Section 4.  The states are defined as follows:
 
    o  zero: there is no state for a given flow at the device
 
-   o  uniflow: a packet has been seen in one direction; state will be
-      kept at the device until it is explicitly cancelled or until
-      timeout t1 elapses without a packet.
+   o  uniflow: at least one packet has been seen in one direction
 
-   o  biflow: a packet has been seen in one direction and an indication
-      that that the receiving endpoint wishes to continue the
-      association has been seen in the opposite direction; state will be
-      kept at the device until it is explicitly canceled or until
-      timeout t2 elapses without a packet.
-
-   o  closing: an established biflow is shutting down due to an explicit
-      close indication; state will be kept at the device until timeout
-      t3 elapses.
-
-   The three timeouts are defined as follows:
-
-   o  t1 is the unidirectional idle timeout.  It can be considered
-      equivalent to the idle timeout for transport protocols where the
-      device has no information about session start and end (e.g. most
-      UDP protocols).
-
-   o  t2 is the bidirectional idle timeout.  It can be considered
-      equivalent to the timeout for transport protocols where the device
-      has information about session start and end (e.g.  TCP).
-
-   o  t3 is the closing timeout: how long the device will account
-      additional packets to a flow after observing a stop signal, and is
-      generally applied to ensuring a reordered stop signal doesn't
-      create a new flow.
-
-   Selection of timeouts is a configuration and implementation detail,
-   but generally t3 <= t1 < t2.
+   o  associating: at least one packet has been seen in one direction,
+      and an indication that the receiving endpoint wishes to continue
+      the association has been seen in the other direction.
 
 
 
-
-
-Kuehlewind, et al.       Expires April 22, 2017                 [Page 4]
+Kuehlewind, et al.        Expires June 1, 2017                  [Page 4]
 
-Internet-Draft              PLUS Statefulness               October 2016
+Internet-Draft              PLUS Statefulness              November 2016
 
 
-      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-     '                                         '
-     '    +----+   p(s->d)   +-----+           '
-     '   /      \---------->/       \----+     '  UNIFLOW
-     '  (  zero  )         ( uniflow ) p(s->d) '  ONLY
-     '   \      /<----------\       /<---+     '  STATES
-     '    +----+      t1     +-----+           '
-     '_ _ _ ^_^ _ _ _ _ _ _ _ _ | _ _ _ _ _ _ _'
-         t3 |  \                | association
-            |   \__________     v
-          +-----+     t2   \  +----+
-         /       \          \/      \----+
-        ( closing )<--------( biflow ) p(s<->d)
-         \       /   stop    \      /<---+
-          +-----+             +----+
+   o  associated: a flow in associating state has further demonstrated
+      that the initial sender can receive packets at its given source
+      address.
+
+   o  closing: an association is shutting down due to an explicit close
+      signal.
+
+   We refer to the zero and uniflow states as "uniflow states", as they
+   are relevant both for truly unidirectional flows, as well as in
+   situations where an on-path device can see only one side of a
+   communication.  We refer to the remaining three states as "biflow
+   states", as they are only applicable to true bidirectional flows,
+   where the on-path device can see both sides of the communication.
+
+       .- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -.
+       '    +==============+    pkt(s->d)    +==========+              '
+       '   //              \\-------------->/            \--+          '
+       '  ((      zero      ))             (    uniflow   ) |pkt(s->d) '
+       '   \\              //<--------------\            /<-+          '
+       '    +==============+  TO_IDLE/close  +==========+              '
+       '- - -|- - -  ^ - ^  - - - - - - - - - - - - - -|- - - - - - - -'
+             |        \   \                            |  association
+  TO_CLOSING |         \   \                           V  signal
+       +==========+     \   \      TO_IDLE        +==========+
+      /            \     \   +-------------------/            \
+     (    closing   )     \                     (  associating )
+      \            /       \                     \            /
+       +==========+         \ TO_ASSOCIATED       +==========+
+             ^               \                         |
+      close  |                \                        |  confirmation
+     signal  |               +==========+              |  signal
+             |              /            \             |
+             |             (  associated  )            |
+             +--------------\            /<------------+
+                             +==========+
+                               |      ^
+                               +------+
+                              pkt(s<->d)
 
 
     Figure 1: Transport-Independent State Machine for Stateful On-Path
                                   Devices
 
+   The three timeouts are defined as follows:
+
+   o  TO_IDLE, the unidirectional idle timeout, can be considered
+      equivalent to the idle timeout for transport protocols where the
+
+
+
+
+Kuehlewind, et al.        Expires June 1, 2017                  [Page 5]
+
+Internet-Draft              PLUS Statefulness              November 2016
+
+
+      device has no information about session start and end (e.g. most
+      UDP protocols).
+
+   o  TO_ASSOCIATED, the bidirectional idle timeout, can be considered
+      equivalent to the timeout for transport protocols where the device
+      has information about session start and end (e.g.  TCP).
+
+   o  TO_CLOSING is the closing timeout: how long the device will
+      account additional packets to a flow after observing a stop
+      signal, ensuring a reordered stop signal doesn't create a new
+      flow.
+
+   Selection of timeouts is a configuration and implementation detail,
+   but generally TO_CLOSING <= TO_IDLE << TO_ASSOCIATED; see
+   [IMC-GATEWAYS].
+
 3.1.  Uniflow States
 
    Every packet received by a device keeping per-flow state must
    associate that packet with a flow (see Section 4.1).  When a device
-   receives a packet associated with a flow it has not state forward,
-   and it is configured to forward the packet instead of dropping it, it
-   moves that flow from the zero state into the uniflow state and starts
-   a timer t1.  It resets this timer for any additional packet it
+   receives a packet associated with a flow it has no state for, and it
+   is configured to forward the packet instead of dropping it, it moves
+   that flow from the zero state into the uniflow state and starts a
+   timer TO_IDLE.  It resets this timer for any additional packet it
    forwards in the same direction as long as the flow remains in the
-   uniflow state.  When timer t1 expires on a flow in the uniflow state,
-   the device drops state for the flow and performs any processing
-   associated with doing so: tearing down NAT bindings, closing
-   associated firewall pinholes, exporting flow information, and so on.
-   The device may also drop state on a stop signal, if observed.
+   uniflow state.  When timer TO_IDLE expires on a flow in the uniflow
+   state, the device drops state for the flow and performs any
+   processing associated with doing so: tearing down NAT bindings,
+   closing associated firewall pinholes, exporting flow information, and
+   so on.  The device may also drop state on a stop signal, if observed.
 
    Some devices will only see one side of a communication, e.g. if they
    are placed in a portion of a network with asymmetric routing.  These
@@ -267,40 +319,40 @@ Internet-Draft              PLUS Statefulness               October 2016
    In addition, true uniflows - protocols which are solely
    unidirectional (e.g. some applications over UDP) - will also use only
    the uniflow-only states.  In either case, current devices generally
-   don't associate much state with observed uniflows flows, and timeout
-   is generally sufficient to expire this state.
-
-
-
-
-
-
-
-
-Kuehlewind, et al.       Expires April 22, 2017                 [Page 5]
-
-Internet-Draft              PLUS Statefulness               October 2016
-
+   don't associate much state with observed uniflows, and an idle
+   timeout is generally sufficient to expire this state.
 
 3.2.  Biflow States
 
-   A uniflow transitions to the biflow state when the device observes an
-   association signal.  An association signal consists of a packet sent
-   in the opposite direction from the uniflow packet(s), with certain
-   properties as defined in Section 4.2.  After transitioning to the
-   biflow state, the device starts a timer t2.  It resets this timer for
-   any packet it forwards in either direction.  The biflow state
-   represents a fully established bidirectional communication.  When
-   timer t2 expires, the device assumes that the flow has shut down
-   without signaling as such, and drops state for the flow, performing
-   any associated processing.  When a stop signal is observed in either
-   direction, the flow transitions to the closing state.
+   A uniflow transitions to the associating state when the device
+   observes an association signal, and further to the associated state
+   when the device observes a subsequent confirmation signal; see
+   Section 4.2 for details.  If the flow has not transitioned to from
+   the associating to the associated state after TO_IDLE, the device
+   drops state for the flow.
 
-   When a flow enters the closing state, it starts a timer t3.  While
-   the stop signal should be the last packet on a flow, the t3 timer
-   ensures that reordered packets after the stop signal will be
-   accounted to the flow.  When this timer expires, the device drops
-   state for the flow, performing any associated processing.
+
+
+Kuehlewind, et al.        Expires June 1, 2017                  [Page 6]
+
+Internet-Draft              PLUS Statefulness              November 2016
+
+
+   After transitioning to the associated state, the device starts a
+   timer TO_ASSOCIATED.  It resets this timer for any packet it forwards
+   in either direction.  The associated state represents a fully
+   established bidirectional communication.  When timer TO_ASSOCIATED
+   expires, the device assumes that the flow has shut down without
+   signaling as such, and drops state for the flow, performing any
+   associated processing.  When a stop signal (see {{stop- signaling}})
+   is observed in either direction, the flow transitions to the closing
+   state.
+
+   When a flow enters the closing state, it starts a timer TO_CLOSING.
+   While the stop signal should be the last packet on a flow, the
+   TO_CLOSING timer ensures that reordered packets after the stop signal
+   will be accounted to the flow.  When this timer expires, the device
+   drops state for the flow, performing any associated processing.
 
 3.3.  Additional States and Actions
 
@@ -315,14 +367,16 @@ Internet-Draft              PLUS Statefulness               October 2016
 
 4.  Abstract Signaling Mechanisms
 
-   The state machine in Section 3 requires three signals: a new flow
-   signal (the first packet observed in a flow in the zero state), an
-   association signal (allowing a device to verify that an endpoint
+   The state machine in Section 3 requires four signals: a new flow
+   signal, the first packet observed in a flow in the zero state; an
+   association signal, allowing a device to verify that an endpoint
    wishes a bidirectional communication to be established or to
-   continue), and a stop signal (noting that an endpoint wishes to stop
-   a bidirectional communication).  Additional related signals may also
-   be useful, depending on the function a device provides.  There are a
-   few different ways to implement these signals; here, we explore the
+   continue; a confirmation signal, allowing a device to confirm that
+   the initiator of a flow is reachable at its purported source address;
+   and a stop signal, noting that an endpoint wishes to stop a
+   bidirectional communication.  Additional related signals may also be
+   useful, depending on the function a device provides.  There are a few
+   different ways to implement these signals; here, we explore the
    properties of some potential implementations.
 
    We assume the following general requirements for these signals;
@@ -330,16 +384,15 @@ Internet-Draft              PLUS Statefulness               October 2016
 
    o  At least the endpoints can verify the integrity of the signals
       exposed, and shut down a transport association when that
-
-
-
-Kuehlewind, et al.       Expires April 22, 2017                 [Page 6]
-
-Internet-Draft              PLUS Statefulness               October 2016
-
-
       verification fails, in order to reduce the incentive for on-path
       devices to attempt to spoof these signals.
+
+
+
+Kuehlewind, et al.        Expires June 1, 2017                  [Page 7]
+
+Internet-Draft              PLUS Statefulness              November 2016
+
 
    o  Endpoints and devices on path can probabilistically verify that a
       originator of a signal is on-path.
@@ -361,69 +414,97 @@ Internet-Draft              PLUS Statefulness               October 2016
    signaling for this state machine must specify the function used for
    flow identification.
 
-4.2.  Association Signaling
+4.2.  Association and Confirmation Signaling
 
-   An association signal indicates that endpoint that received the first
-   packet seen by the device is interested in continuing conversation
-   with the sending endpoint.  This signal is roughly an in-band
-   analogue to consent signaling in ICE [RFC7675] that is carried to
-   every device along the path.
+   An association signal indicates that the endpoint that received the
+   first packet seen by the device is interested in continuing
+   conversation with the sending endpoint.  This signal is roughly an
+   in-band analogue to consent signaling in ICE [RFC7675] that is
+   carried to every device along the path.
 
-   Transport-independent, path-verifiable association signaling can be
-   implemented using a association token generated by one endpoint,
-   present on each packet sent in the flow by that endpoint, and a
-   response token, derived from the association token using a well-
-   known, defined function, present on each packet sent in the flow by
-   the opposite endpoint.  We can assume a transport association has an
-   initiator and a responder; under this assumption, the association
-   token is chosen by the initiator, and the response token generated by
-   the responder.
+   A confirmation signal indicates that the endpoint that sent the first
+   packet seen by the device is reachable at its purported source
+   address, and is necessary to prevent spoofed or reflected packets
+   from driving the state machine into the associated state.  It is
+   roughly equivalent to the final ACK in the TCP three-way handshake.
 
-   Any packet sent by the responder with a valid response token, and
-   without a stop signal (see Section 4.3), can then be taken to be a
-   association signal to continue a bidirectional communication.  Note
-   that, since it relies on a widely-known function, this mechanism does
-   allow on-path devices to forge association signaling in a way that
-   downstream on-path devices cannot detect.  However, in the presence
-   of end-to-end signal integrity verification, this forgery will be
+   These two signals are related to each other, in that association
+   requires the receiving endpoint of the first packet to prove it has
+   seen that packet (or a subsequent packet), and to acknowledge it
+   wants to continue the association; while confirmation requires the
+   sending endpoint to prove it has seen the association token.
+
+   Transport-independent, path-verifiable association and confirmation
+   signaling can be implemented using three values carried in the packet
+   headers: an association token, a confirmation nonce, and an echo
+   token.
+
+   The association token is a cryptographically random value generated
+   by the endpoint initiating a connection, and is carried on packets in
+   the uniflow state.  When a receiving endpoint wishes to send an
 
 
 
-Kuehlewind, et al.       Expires April 22, 2017                 [Page 7]
+Kuehlewind, et al.        Expires June 1, 2017                  [Page 8]
 
-Internet-Draft              PLUS Statefulness               October 2016
+Internet-Draft              PLUS Statefulness              November 2016
 
 
-   detected by the endpoint, which MUST terminate the association on a
-   forged association signal; the flow at the duped on-path device will
-   transition from biflow to closing within a single packet.  This
-   reduces any attack against the association signaling mechanism to the
-   disruption of a connection, which on-path devices can do in any case
-   by simply refusing to forward packets.
+   association signal, it generates an echo token from the association
+   token using a well-known, defined function (e.g. a truncated SHA-256
+   hash), and generates a cryptographically random confirmation nonce.
+   The initiating endpoint sends a confirmation signal on the next
+   packet it sends after receiving the confirmation nonce, by applying a
+   function to the echo token and the confirmation nonce, and sending
+   the result as a new association token.
 
-   Association tokens MUST be chosen by initiators to be hard to guess;
-   otherwise, off-path devices can spoof association and response
-   signals.  Cryptographic random number generators suffice here.  In
+   Devices on path verify that the echo token corresponds to a
+   previously seen association token to recognize an association signal,
+   and recognize that an association token corresponds to a previously
+   seen echo token and confirmation nonce to recognize an association
+   signal.
+
+   These signals could be exposed on only first few packets of a
+   connection (those corresponding to the cryptographic and/or transport
+   state handshakes in the overlying protocols).  In this case, an on-
+   path device would need to observe the start of the flow to establish
+   state.  They could also be present on every packet in the flow,
+   allowing state to be re-established even in the middle of a flow with
+   longer idle periods than the TO_ESTABLISHED timeout value.  In this
+   case, the series of exposed association tokens, echo tokens, and
+   confirmation nonces can be observed to derive a running round-trip
+   time estimate for the flow.
+
+   If the association token and confirmation nonce are predictable, off-
+   path devices can spoof association and confirmation signals.  In
    choosing the number of bits for an association token, there is a
    tradeoff between per-packet overhead and state overhead at on-path
    devices, and assurance that an association token is hard to guess.
    This tradeoff must be evaluated at protocol design time.
 
    There are a few considerations in choosing a function (or functions)
-   to generate the response token from the association token, and to
-   verify a response token given an association token.  The simplest
-   such function is the identity function: the response token is simply
-   the association token.  Simple two-way functions (e.g. one's
-   complement of the association token) provide additional assurance of
-   implementation of the protocol, and cannot be accidentally triggered
-   by simple reflection of unknown bits in a packet.  One- way functions
-   (e.g. truncated SHA-2 hash of the association token) additionally
-   allow on-path recognition of initiator and responder from the middle
-   of a flow.
+   to generate the echo token from the association token, to verify an
+   echo token given an association token, and to derive a next
+   association token from the echo token and confirmation nonce.  The
+   functions could be extremely simple (e.g., identity for the echo
+   token and addition for the nonce) for ease of implementation even in
+   extremely constrained environments.  Using one-way functions (e.g.,
+   truncated SHA-256 hash to derive echo token from association token;
+   XOR followed by truncated SHA-256 hash to derive association token
+   from echo token and confirmation nonce) requires slightly more work
+   from on-path devices, but the primitives will be available at any
+   endpoint using an encrypted transport protocol.  In any case, a
+   concrete implementation of association and confirmation signaling
+   must choose a set of functions, or mechanism for unambiguously
+   choosing one, at both endpoints as well as along the path.
 
-   In any case, a concrete implementation of association signaling must
-   choose a single function, or mechanism for unambiguously choosing
-   one, at both endpoints as well as along the path.
+
+
+
+Kuehlewind, et al.        Expires June 1, 2017                  [Page 9]
+
+Internet-Draft              PLUS Statefulness              November 2016
+
 
 4.3.  Stop Signaling
 
@@ -434,108 +515,179 @@ Internet-Draft              PLUS Statefulness               October 2016
    flow from uniflow state to null, or from biflow state to closing.
 
    Transports should send a stop signal only on the last packet sent in
-   a bidirectional flow.  The closing timeout t3 is intended to ensure
-   that any packets reordered in delivery are accounted to the flow
-   before state for it is dropped.
+   a bidirectional flow.  The closing timeout TO_CLOSING is intended to
+   ensure that any packets reordered in delivery are accounted to the
+   flow before state for it is dropped.
 
    We assume the encoding of a stop signal into a packet header, as with
    all other signals, is integrity protected end-to-end.  Stop signals,
-   as association signals, be forged by one on-path device to dupe other
-   devices into moving flows into the closing state.  However, state
-
-
-
-Kuehlewind, et al.       Expires April 22, 2017                 [Page 8]
-
-Internet-Draft              PLUS Statefulness               October 2016
-
-
-   will be re-established by the continuing flow (and resulting
+   as association signals, could be forged by one on-path device to dupe
+   other devices into moving flows into the closing state.  However,
+   state will be re-established by the continuing flow (and resulting
    association signals) after the closing timeout, and an endpoint
    receiving a spoofed stop signal could enter a fast re-establishment
    phase of the upper layer transport protocol to minimize disruption,
    further reducing the incentive to attackers to spoof stop signals.
 
+   Alternatively, the stop signal could be designed to authenticate
+   itself.  Each endpoint could reveal a stop hash during the initial
+   association, which is the result of a chosen cryptographic hash
+   function applied to a stop token which that endpoint keeps secret.
+   An endpoint wishing to end the association then reveals the stop
+   token, which can be verified both by the far endpoint and devices on
+   path which have cached the stop hash to be authentic.
+
 4.4.  Timeout Exposure
 
    Since one of the goals of these mechanisms is to reduce the amount of
    non- productive keepalive traffic required for UDP-encapsulated
-   transport protocols, they MAY be deployed together with a path-to-
+   transport protocols, they may be deployed together with a path-to-
    receiver signal with feedback as defined in
-   [draft-trammell-plus-abstract-mech] asking for timeouts t1, t2, and
-   t3 for a given flow.
+   [draft-trammell-plus-abstract-mech] asking for timeouts for a given
+   flow.
 
-5.  Signal mappings for transport protocols
+5.  Deployment Considerations
+
+   The state machine defined in this document is most useful when
+   implemented in a single instantiation (wire format for signals, and
+   selection of functions for deriving values to be exposed and
+   verified) by multiple transport protocols.  It is intended for use
+   with protocols that encrypt their transport- layer headers, and that
+   are encapsulated within UDP, as is the case with QUIC
+
+
+
+Kuehlewind, et al.        Expires June 1, 2017                 [Page 10]
+
+Internet-Draft              PLUS Statefulness              November 2016
+
+
+   [I-D.hamilton-quic-transport-protocol].  Definition of that
+   instantiation is out of scope for the present revision of this
+   document.
+
+   The following subsections discuss incentives for deployment of this
+   state machine both at middleboxes and at endpoints.
+
+5.1.  Middlebox Deployment
+
+   The state machine defined herein is designed to replace TCP state-
+   tracking for firewalls and NAT devices.  When encrypted transport
+   protocols encapsulated in UDP adopt a set of signals and a wire
+   format for those signals to drive this state machine, these
+   middleboxes could continue using TCP-like logic to handle those UDP
+   flows.  Recognizing the wire format used by those signals would allow
+   these middleboxes to distinguish "UDP with an encrypted transport"
+   from undifferentiated UDP, and to treat the former case more like
+   TCP, providing longer timeouts for established flows, as well as
+   stateful defense against spoofed or reflected garbage traffic.
+
+5.2.  Endpoint Deployment
+
+   An encrypted, UDP-encapsulated transport protocol has two primary
+   incentives to expose these signals.  First, allowing firewalls on
+   networks that generally block UDP (about 3-5% of Internet-connected
+   networks, depending on the study) to distinguish "UDP with an
+   encrypted transport" traffic from other UDP traffic may result in
+   less blocking of that traffic.  Second, the difference between the
+   timeouts TO_IDLE and TO_ASSOCIATED, as well as the continuous state
+   establishment possible with some instantiations of the association
+   and confirmation signals, would allow these transport protocols to
+   send less unproductive keepalive traffic for long-lived, sparse
+   flows.
+
+   While both of these advantages require middleboxes on path to
+   recognize and use the signals driving this state machine, we note
+   that content providers driving the deployment of this protocols are
+   also operators of their own content provision networks, and that many
+   of the benefits of encrypted- encapsulated transport firewalls will
+   accrue to them, giving these content providers incentives to deploy
+   both endpoints and middleboxes.
+
+6.  Signal mappings for transport protocols
 
    We now show how this state machine can be driven by signals available
    in TCP and QUIC.
 
-5.1.  Signal mapping for TCP
+
+
+
+
+Kuehlewind, et al.        Expires June 1, 2017                 [Page 11]
+
+Internet-Draft              PLUS Statefulness              November 2016
+
+
+6.1.  Signal mapping for TCP
 
    A mapping of TCP flags to transitions in to the state machine in
    Section 3 shows how devices currently using a model of the TCP state
    machine can be converted to use this state machine.
 
-   Simply speaking, an ACK flag [RFC0793] in the absence of the FIN or
-   RST flags, and an in-window acknowledgment number, is synonymous with
-   the association signal, while the RST or final FIN flags are stop
-   signals.  For a typical TCP flow:
+   TCP [RFC0793] provides start-of-flow association only.  A packet with
+   the SYN and ACK flags set in the absence of the FIN or RST flags, and
+   an in-window acknowledgment number, is synonymous with the
+   association signal.  A packet with the ACK flag set in the absence of
+   the FIN or RST flags after an initial SYN, and an in-window
+   acknowledgment number, is synonymous with the confirmation signal.
+   For a typical TCP flow:
 
    1.  The initial SYN places the flow into uniflow state,
 
    2.  The SYN-ACK sent in reply acts as a association signal and places
-       the flow into biflow state,
+       the flow into associating state,
 
-   3.  Any RST moves the flow into closing state, or
+   3.  The ACK sent in reply acts as a confirmatio signal and places the
+       flow into associated state,
 
-   4.  The final FIN-ACK (not the first half-close FIN) moves the flow
+   4.  Any RST moves the flow into closing state, or
+
+   5.  The final FIN-ACK (not the first half-close FIN) moves the flow
        into closing state.
 
-   Note that since any valid ACK acts as an association signal, this
-   mapping allows flows to transition to the biflow state even if the
-   initial SYN-ACK is not observed.  However, generating a stop signal
-   from FIN does require additional TCP state modeling to prevent moving
-   into the closing state on a half-close.
+   Note that generating a stop signal from FIN does require additional
+   TCP state modeling to prevent moving into the closing state on a
+   half-close.
+
+   Note also that the association and stop signals derived from the TCP
+   header are not integrity protected, and association and confirmation
+   signals based on in-window ACK are not particularly resistant to off-
+   path attacks [IMC-TCP].  The state machine is therefore more
+   susceptible to manipulation when used with vanilla TCP as when with a
+   transport protocol providing full integrity protection for its
+   headers end-to-end.
+
+6.2.  Signal mapping for QUIC
+
+   QUIC [I-D.hamilton-quic-transport-protocol] is a moving target;
+   however, signals for driving this state machine are fundamentally
+   compatible with the protocol's design and could easily be added to
+   the protocol specification.
+
+   Specifically, as of this writing, QUIC's 64-bit connection ID,
+   together with integrity protection of the connection ID provided by
 
 
 
-
-
-Kuehlewind, et al.       Expires April 22, 2017                 [Page 9]
+Kuehlewind, et al.        Expires June 1, 2017                 [Page 12]
 
-Internet-Draft              PLUS Statefulness               October 2016
+Internet-Draft              PLUS Statefulness              November 2016
 
 
-   Note that the association and stop signals derived from the TCP
-   header are not integrity protected, and an association signal based
-   on in-window ACK is not particularly resistant to off-path attacks;
-   the state machine is therefore more susceptible to manipulation when
-   used with vanilla TCP as when with a transport protocol providing
-   full integrity protection for its headers end-to-end.
+   QUIC's cryptographic protocol [I-D.thomson-quic-tls], could be used
+   as an association and echo token as in Section 4.2.  A confirmation
+   nonce, or equivalent mechanism, is presently missing and would have
+   to be added.  The addition of a public reset signal that would act as
+   a stop signal as in Section 4.3 is presently under discussion on the
+   QUIC mailing list; one proposal for self-authenticating public reset
+   inspired the addition of a comparable mechanism to Section 4.3 of
+   this document.
 
-5.2.  Signal mapping for QUIC
-
-   QUIC [I-D.hamilton-quic-transport-protocol] as presently defined
-   lacks only a stop signal to be able to drive this state machine.
-   QUIC's 64-bit connection ID suffices as an association and response
-   token as in Section 4.2; the response token function is identity.
-   QUIC's cryptographic protocol, to be based on TLS
-   [I-D.thomson-quic-tls], will provide the necessary integrity
-   protection to drive the state machine.
-
-   Any number of designs could be chosen to add a stop signal compatible
-   with the definition in Section 4.3 to QUIC.  One is particularly
-   promising, however.  We note that the Public Reset facility described
-   in section 8 of [I-D.hamilton-quic-transport-protocol] very nearly
-   meets the criteria; it would need to be expanded to expose normal
-   termination as well as abnormal termination, and to provide for
-   endpoint detection of inauthentic termination signals.
-
-6.  IANA Considerations
+7.  IANA Considerations
 
    This document has no actions for IANA.
 
-7.  Security Considerations
+8.  Security Considerations
 
    This document defines a state machine for transport-independent state
    management on middleboxes, using in-band signaling, to replace the
@@ -549,18 +701,13 @@ Internet-Draft              PLUS Statefulness               October 2016
    devices to connection disruption, which such devices are trivially
    placed to perform in any case.
 
-8.  Acknowledgments
+9.  Acknowledgments
 
-   Thanks to Christian Huitema for discussions leading to this document.
-
-
-
-
-
-Kuehlewind, et al.       Expires April 22, 2017                [Page 10]
-
-Internet-Draft              PLUS Statefulness               October 2016
-
+   Thanks to Christian Huitema for discussions leading to this document,
+   and to Andrew Yourtchenko for the feedback.  The mechanism for using
+   a revealed value to prove ownership of a stop token was inspired by
+   Eric Rescorla's suggestion to use a fundamentally identical mechanism
+   for the QUIC public reset.
 
    This work is partially supported by the European Commission under
    Horizon 2020 grant agreement no. 688421 Measurement and Architecture
@@ -568,9 +715,20 @@ Internet-Draft              PLUS Statefulness               October 2016
    for Education, Research, and Innovation under contract no. 15.0268.
    This support does not imply endorsement.
 
-9.  References
+10.  References
 
-9.1.  Normative References
+10.1.  Normative References
+
+
+
+
+
+
+
+Kuehlewind, et al.        Expires June 1, 2017                 [Page 13]
+
+Internet-Draft              PLUS Statefulness              November 2016
+
 
    [RFC5103]  Trammell, B. and E. Boschi, "Bidirectional Flow Export
               Using IP Flow Information Export (IPFIX)", RFC 5103,
@@ -589,7 +747,7 @@ Internet-Draft              PLUS Statefulness               October 2016
               RFC 7398, DOI 10.17487/RFC7398, February 2015,
               <http://www.rfc-editor.org/info/rfc7398>.
 
-9.2.  Informative References
+10.2.  Informative References
 
    [draft-trammell-plus-abstract-mech]
               Trammell, B., "Abstract Mechanisms for a Cooperative Path
@@ -598,24 +756,34 @@ Internet-Draft              PLUS Statefulness               October 2016
    [I-D.hamilton-quic-transport-protocol]
               Hamilton, R., Iyengar, J., Swett, I., and A. Wilk, "QUIC:
               A UDP-Based Multiplexed and Secure Transport", draft-
-              hamilton-quic-transport-protocol-00 (work in progress),
-              July 2016.
+              hamilton-quic-transport-protocol-01 (work in progress),
+              October 2016.
+
+   [I-D.hardie-path-signals]
+              Hardie, T., "Path signals", draft-hardie-path-signals-00
+              (work in progress), October 2016.
 
    [I-D.thomson-quic-tls]
-              Thomson, M. and R. Hamilton, "Porting QUIC to Transport
-              Layer Security (TLS)", draft-thomson-quic-tls-00 (work in
-              progress), March 2016.
+              Thomson, M. and R. Hamilton, "Using Transport Layer
+              Security (TLS) to Secure QUIC", draft-thomson-quic-tls-01
+              (work in progress), October 2016.
 
    [IMC-GATEWAYS]
               Hatonen, S., Nyrhinen, A., Eggert, L., Strowes, S.,
               Sarolahti, P., and M. Kojo, "An experimental study of home
-              gateway characteristics (Proc. ACM IMC 2010)", n.d..
+              gateway characteristics (Proc. ACM IMC 2010)", October
+              2010.
+
+   [IMC-TCP]  Luckie, M., Beverly, R., Wu, T., Allman, M., and k.
+              claffy, "Resilience of Deployed TCP to Blind Attacks.
+              (Proc. ACM IMC 2015)", October 2015.
 
 
 
-Kuehlewind, et al.       Expires April 22, 2017                [Page 11]
+
+Kuehlewind, et al.        Expires June 1, 2017                 [Page 14]
 
-Internet-Draft              PLUS Statefulness               October 2016
+Internet-Draft              PLUS Statefulness              November 2016
 
 
    [RFC0793]  Postel, J., "Transmission Control Protocol", STD 7,
@@ -669,4 +837,4 @@ Authors' Addresses
 
 
 
-Kuehlewind, et al.       Expires April 22, 2017                [Page 12]
+Kuehlewind, et al.        Expires June 1, 2017                 [Page 15]
