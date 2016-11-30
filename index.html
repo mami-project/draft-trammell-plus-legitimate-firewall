@@ -307,7 +307,7 @@ address {
 
   <meta name="dct.creator" content="Kuehlewind, M., Trammell, B., and J. Hildebrand" />
   <meta name="dct.identifier" content="urn:ietf:id:draft-trammell-plus-statefulness-01" />
-  <meta name="dct.issued" scheme="ISO8601" content="2016-11-28" />
+  <meta name="dct.issued" scheme="ISO8601" content="2016-11-30" />
   <meta name="dct.abstract" content="This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or incomplete forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows." />
   <meta name="description" content="This document describes a simple state machine for stateful network devices on a path between two endpoints to associate state with traffic traversing them on a per-flow basis, as well as abstract signaling mechanisms for driving the state machine. This state machine is intended to replace the de-facto use of the TCP state machine or incomplete forms thereof by stateful network devices in a transport-independent way, while still allowing for fast state timeout of non-established or undesirable flows." />
 
@@ -331,12 +331,12 @@ address {
   <td class="right">ETH Zurich</td>
 </tr>
 <tr>
-  <td class="left">Expires: June 1, 2017</td>
+  <td class="left">Expires: June 3, 2017</td>
   <td class="right">J. Hildebrand</td>
 </tr>
 <tr>
   <td class="left"></td>
-  <td class="right">November 28, 2016</td>
+  <td class="right">November 30, 2016</td>
 </tr>
 
     	
@@ -356,7 +356,7 @@ address {
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at http://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on June 1, 2017.</p>
+<p>This Internet-Draft will expire on June 3, 2017.</p>
 <h1 id="rfc.copyrightnotice">
   <a href="#rfc.copyrightnotice">Copyright Notice</a>
 </h1>
@@ -399,7 +399,7 @@ address {
 <p id="rfc.section.1.p.1">The boundary between the network and transport layers was originally defined to be that between information used (and potentially modified) hop-by-hop, and that used end-to-end. End-to-end information in the transport layer is associated with state at the endpoints, but processing of network-layer information was assumed to be stateless.</p>
 <p id="rfc.section.1.p.2">The widespread deployment of stateful middleboxes in the Internet, such as network address and port translators (NAPT), firewalls that model the TCP state machine to distinguish packets belonging from desirable flows from backscatter and random attack traffic, and devices which keep per-flow state for reporting and monitoring purposes (e.g. IPFIX <a href="#RFC7011">[RFC7011]</a> Metering Processes), has broken this assumption, and made it more difficult to deploy non-TCP transport protocols in the Internet.</p>
 <p id="rfc.section.1.p.3">The deployment of new transport protocols encapsulated in UDP with encrypted transport headers (such as QUIC <a href="#I-D.hamilton-quic-transport-protocol">[I-D.hamilton-quic-transport-protocol]</a>) will present a challenge to the operation of these devices, and their ubquity likewise threatens to impair the deployability of these protocols. There are two main causes for this problem: first, stateful devices often use an internal model of the TCP state machine to determine when TCP flows start and end, allowing them to manage state for these flows; for UDP flows, they must rely on timeouts. These timeouts are generally short relative to those for TCP <a href="#IMC-GATEWAYS">[IMC-GATEWAYS]</a>, requiring UDP- encapsulated transports either to generate unproductive keepalive traffic for long-lived sessions, or to tolerate connectivity problems and the necessity of reconnection due to loss of on-path state.</p>
-<p id="rfc.section.1.p.4">This document presents a solution to this problem by defining a state machine that is transport independent to be implemented at per-flow state-keeping middleboxes as a replacement for incomplete TCP state modeling. Middleboxes implementing this state machine using signals from a common UDP encapsulation layer can have equivalent necessary state information to that provided by TCP, reducing the friction between middleboxes and these new transport protocols.</p>
+<p id="rfc.section.1.p.4">This document presents an abstract solution to this problem by defining a transport-independent state machine to be implemented at per-flow state- keeping middleboxes as a replacement for incomplete TCP state modeling. A key concept behind this approach is that encryption of transport protocol headers allows a transport protocol to separate its wire image &#8211; what it looks like to devices on path &#8211; from its internal semantics. We advocate the creation of a minimal wire image for these protocols that exposes enough information to drive the state machine presented. Present and future evolution of encrypted transport protocols can then happen behind this wire image, and  Middleboxes implementing this state machine can use signals from a UDP encapsulation common to a set of encrypted transport protocols can have equivalent state information to that provided by TCP, reducing the friction between deployed middleboxes and these new transport protocols.</p>
 <h1 id="rfc.section.2"><a href="#rfc.section.2">2.</a> <a href="#terminology" id="terminology">Terminology</a></h1>
 <p id="rfc.section.2.p.1">In this document, the term &#8220;flow&#8221; is defined to be compatible with the definition given in <a href="#RFC7011">[RFC7011]</a>: A flow is defined as a set of packets passing a device on the network during a certain time interval. All packets belonging to a particular Flow have a set of common properties. Each property is defined as the result of applying a function to the values of:</p>
 <p/>
