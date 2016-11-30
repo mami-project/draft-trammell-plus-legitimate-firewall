@@ -136,12 +136,19 @@ unproductive keepalive traffic for long-lived sessions, or to tolerate
 connectivity problems and the necessity of reconnection due to loss of on-path
 state.
 
-This document presents a solution to this problem by defining a state machine
-that is transport independent to be implemented at per-flow state-keeping
-middleboxes as a replacement for incomplete TCP state modeling. Middleboxes
-implementing this state machine using signals from a common UDP encapsulation
-layer can have equivalent necessary state information to that provided by TCP,
-reducing the friction between middleboxes and these new transport protocols.
+This document presents an abstract solution to this problem by defining a
+transport-independent state machine to be implemented at per-flow state-
+keeping middleboxes as a replacement for incomplete TCP state modeling. A key
+concept behind this approach is that encryption of transport protocol headers
+allows a transport protocol to separate its wire image -- what it looks like
+to devices on path -- from its internal semantics. We advocate the creation of
+a minimal wire image for these protocols that exposes enough information to
+drive the state machine presented. Present and future evolution of encrypted
+transport protocols can then happen behind this wire image, and  Middleboxes
+implementing this state machine can use signals from a UDP encapsulation
+common to a set of encrypted transport protocols can have equivalent state
+information to that provided by TCP, reducing the friction between deployed
+middleboxes and these new transport protocols.
 
 # Terminology
 
