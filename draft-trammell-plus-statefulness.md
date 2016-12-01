@@ -1,7 +1,7 @@
 ---
 title: Transport-Independent Path Layer State Management
 abbrev: PLUS Statefulness
-docname: draft-trammell-plus-statefulness-01
+docname: draft-trammell-plus-statefulness-02
 date:
 category: info
 
@@ -227,15 +227,14 @@ communication.
             |        \   \                            |  association
  TO_CLOSING |         \   \                           V  signal
       +==========+     \   \      TO_IDLE        +==========+  
-     /            \     \   +-------------------/            \ 
-    (    closing   )     \                     (  associating )
-     \            /       \                     \            / 
+     /            \     \   +-------------------/            \--+ 
+    (    closing   )     \                     (  associating ) | pkt
+     \            /       \                     \            /<-+(s->d)
       +==========+         \ TO_ASSOCIATED       +==========+  
             ^               \                         |
-     close  |                \                        |  confirmation
-    signal  |               +==========+              |  signal
-            |              /            \             |
-            |             (  associated  )            |
+            |               +==========+              |  
+     close  |              /            \             |  confirmation
+    signal  |             (  associated  )            |  signal
             +--------------\            /<------------+
                             +==========+  
                               |      ^
@@ -309,6 +308,8 @@ that reordered packets after the stop signal will be accounted to the flow.
 When this timer expires, the device drops state for the flow, performing any
 associated processing.
 
+Spurious closing signals can be cancelled 
+
 ## Additional States and Actions
 
 This document is concerned only with states and transitions common to
@@ -359,9 +360,10 @@ machine must specify the function used for flow identification.
 ## Association and Confirmation Signaling
 
 An association signal indicates that the endpoint that received the first
-packet seen by the device is interested in continuing conversation with the
-sending endpoint. This signal is roughly an in-band analogue to consent
-signaling in ICE {{RFC7675}} that is carried to every device along the path.
+packet seen by the device has indeed seen that packet, and is interested in
+continuing conversation with the sending endpoint. This signal is roughly an
+in-band analogue to consent signaling in ICE {{RFC7675}} that is carried to
+every device along the path.
 
 A confirmation signal indicates that the endpoint that sent the first packet
 seen by the device is reachable at its purported source address, and is
@@ -426,6 +428,8 @@ association and confirmation signaling must choose a set of functions, or
 mechanism for unambiguously choosing one, at both endpoints as well as along
 the path.
 
+Note that sending a packet without a stop signal on the reverse 
+
 ## Stop Signaling
 
 A stop signal is directly carried or otherwise encoded in the protocol
@@ -455,7 +459,19 @@ that endpoint keeps secret. An endpoint wishing to end the association then
 reveals the stop token, which can be verified both by the far endpoint and
 devices on path which have cached the stop hash to be authentic.
 
+## Separate Utility
+
+Although all of these signals are required to drive the state machine
+described by this document, note that association/confirmation and stop
+signaling have separate utility. A transport protocol may expose the end of a
+flow without any proof of association or confirmation of return routability of
+the initiator. Alternately, the transport protocol could rely on short
+timeouts to clean up stale state on path, while exposing continuous
+association and confirmation signals to quickly reestablish state.
+
 # Deployment Considerations
+
+[EDITOR'S NOTE: discuss incentives for deployment for signals separately here]
 
 The state machine defined in this document is most useful when implemented in
 a single instantiation (wire format for signals, and selection of functions
