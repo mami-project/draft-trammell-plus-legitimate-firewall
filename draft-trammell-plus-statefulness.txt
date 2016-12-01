@@ -5,12 +5,12 @@
 Network Working Group                                      M. Kuehlewind
 Internet-Draft                                               B. Trammell
 Intended status: Informational                                ETH Zurich
-Expires: June 3, 2017                                      J. Hildebrand
-                                                       November 30, 2016
+Expires: June 4, 2017                                      J. Hildebrand
+                                                       December 01, 2016
 
 
            Transport-Independent Path Layer State Management
-                  draft-trammell-plus-statefulness-01
+                  draft-trammell-plus-statefulness-02
 
 Abstract
 
@@ -38,7 +38,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on June 3, 2017.
+   This Internet-Draft will expire on June 4, 2017.
 
 Copyright Notice
 
@@ -53,9 +53,9 @@ Copyright Notice
 
 
 
-Kuehlewind, et al.        Expires June 3, 2017                  [Page 1]
+Kuehlewind, et al.        Expires June 4, 2017                  [Page 1]
 
-Internet-Draft              PLUS Statefulness              November 2016
+Internet-Draft              PLUS Statefulness              December 2016
 
 
    to this document.  Code Components extracted from this document must
@@ -75,17 +75,18 @@ Table of Contents
      4.1.  Flow Identification . . . . . . . . . . . . . . . . . . .   8
      4.2.  Association and Confirmation Signaling  . . . . . . . . .   8
      4.3.  Stop Signaling  . . . . . . . . . . . . . . . . . . . . .  10
-   5.  Deployment Considerations . . . . . . . . . . . . . . . . . .  10
+     4.4.  Separate Utility  . . . . . . . . . . . . . . . . . . . .  10
+   5.  Deployment Considerations . . . . . . . . . . . . . . . . . .  11
      5.1.  Middlebox Deployment  . . . . . . . . . . . . . . . . . .  11
      5.2.  Endpoint Deployment . . . . . . . . . . . . . . . . . . .  11
-   6.  Signal mappings for transport protocols . . . . . . . . . . .  11
-     6.1.  Signal mapping for TCP  . . . . . . . . . . . . . . . . .  11
-     6.2.  Signal mapping for QUIC . . . . . . . . . . . . . . . . .  12
+   6.  Signal mappings for transport protocols . . . . . . . . . . .  12
+     6.1.  Signal mapping for TCP  . . . . . . . . . . . . . . . . .  12
+     6.2.  Signal mapping for QUIC . . . . . . . . . . . . . . . . .  13
    7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  13
    8.  Security Considerations . . . . . . . . . . . . . . . . . . .  13
    9.  Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .  13
-   10. References  . . . . . . . . . . . . . . . . . . . . . . . . .  13
-     10.1.  Normative References . . . . . . . . . . . . . . . . . .  13
+   10. References  . . . . . . . . . . . . . . . . . . . . . . . . .  14
+     10.1.  Normative References . . . . . . . . . . . . . . . . . .  14
      10.2.  Informative References . . . . . . . . . . . . . . . . .  14
    Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  15
 
@@ -104,15 +105,17 @@ Table of Contents
    desirable flows from backscatter and random attack traffic, and
    devices which keep per-flow state for reporting and monitoring
    purposes (e.g.  IPFIX [RFC7011] Metering Processes), has broken this
+
+
+
+
+Kuehlewind, et al.        Expires June 4, 2017                  [Page 2]
+
+Internet-Draft              PLUS Statefulness              December 2016
+
+
    assumption, and made it more difficult to deploy non-TCP transport
    protocols in the Internet.
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                  [Page 2]
-
-Internet-Draft              PLUS Statefulness              November 2016
-
 
    The deployment of new transport protocols encapsulated in UDP with
    encrypted transport headers (such as QUIC
@@ -160,15 +163,15 @@ Internet-Draft              PLUS Statefulness              November 2016
    2.  one or more characteristics of the packet itself (e.g., number of
        MPLS labels, etc.);
 
+
+
+Kuehlewind, et al.        Expires June 4, 2017                  [Page 3]
+
+Internet-Draft              PLUS Statefulness              December 2016
+
+
    3.  one or more of the fields derived from packet treatment at the
        device (e.g., next-hop IP address, the output interface, etc.).
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                  [Page 3]
-
-Internet-Draft              PLUS Statefulness              November 2016
-
 
    A packet is defined as belonging to a flow if it completely satisfies
    all the defined properties of the flow.
@@ -213,18 +216,19 @@ Internet-Draft              PLUS Statefulness              November 2016
       and an indication that the receiving endpoint wishes to continue
       the association has been seen in the other direction.
 
+
+
+
+
+
+Kuehlewind, et al.        Expires June 4, 2017                  [Page 4]
+
+Internet-Draft              PLUS Statefulness              December 2016
+
+
    o  associated: a flow in associating state has further demonstrated
       that the initial sender can receive packets at its given source
       address.
-
-
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                  [Page 4]
-
-Internet-Draft              PLUS Statefulness              November 2016
-
 
    o  closing: an association is shutting down due to an explicit close
       signal.
@@ -246,15 +250,14 @@ Internet-Draft              PLUS Statefulness              November 2016
              |        \   \                            |  association
   TO_CLOSING |         \   \                           V  signal
        +==========+     \   \      TO_IDLE        +==========+
-      /            \     \   +-------------------/            \
-     (    closing   )     \                     (  associating )
-      \            /       \                     \            /
+      /            \     \   +-------------------/            \--+
+     (    closing   )     \                     (  associating ) | pkt
+      \            /       \                     \            /<-+(s->d)
        +==========+         \ TO_ASSOCIATED       +==========+
              ^               \                         |
-      close  |                \                        |  confirmation
-     signal  |               +==========+              |  signal
-             |              /            \             |
-             |             (  associated  )            |
+             |               +==========+              |
+      close  |              /            \             |  confirmation
+     signal  |             (  associated  )            |  signal
              +--------------\            /<------------+
                              +==========+
                                |      ^
@@ -274,12 +277,9 @@ Internet-Draft              PLUS Statefulness              November 2016
 
 
 
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                  [Page 5]
+Kuehlewind, et al.        Expires June 4, 2017                  [Page 5]
 
-Internet-Draft              PLUS Statefulness              November 2016
+Internet-Draft              PLUS Statefulness              December 2016
 
 
    o  TO_ASSOCIATED, the bidirectional idle timeout, can be considered
@@ -333,9 +333,9 @@ Internet-Draft              PLUS Statefulness              November 2016
 
 
 
-Kuehlewind, et al.        Expires June 3, 2017                  [Page 6]
+Kuehlewind, et al.        Expires June 4, 2017                  [Page 6]
 
-Internet-Draft              PLUS Statefulness              November 2016
+Internet-Draft              PLUS Statefulness              December 2016
 
 
    in either direction.  The associated state represents a fully
@@ -351,6 +351,8 @@ Internet-Draft              PLUS Statefulness              November 2016
    TO_CLOSING timer ensures that reordered packets after the stop signal
    will be accounted to the flow.  When this timer expires, the device
    drops state for the flow, performing any associated processing.
+
+   Spurious closing signals can be cancelled
 
 3.3.  Additional States and Actions
 
@@ -387,11 +389,9 @@ Internet-Draft              PLUS Statefulness              November 2016
 
 
 
-
-
-Kuehlewind, et al.        Expires June 3, 2017                  [Page 7]
+Kuehlewind, et al.        Expires June 4, 2017                  [Page 7]
 
-Internet-Draft              PLUS Statefulness              November 2016
+Internet-Draft              PLUS Statefulness              December 2016
 
 
    o  Endpoints and devices on path can probabilistically verify that a
@@ -417,10 +417,10 @@ Internet-Draft              PLUS Statefulness              November 2016
 4.2.  Association and Confirmation Signaling
 
    An association signal indicates that the endpoint that received the
-   first packet seen by the device is interested in continuing
-   conversation with the sending endpoint.  This signal is roughly an
-   in-band analogue to consent signaling in ICE [RFC7675] that is
-   carried to every device along the path.
+   first packet seen by the device has indeed seen that packet, and is
+   interested in continuing conversation with the sending endpoint.
+   This signal is roughly an in-band analogue to consent signaling in
+   ICE [RFC7675] that is carried to every device along the path.
 
    A confirmation signal indicates that the endpoint that sent the first
    packet seen by the device is reachable at its purported source
@@ -445,9 +445,9 @@ Internet-Draft              PLUS Statefulness              November 2016
 
 
 
-Kuehlewind, et al.        Expires June 3, 2017                  [Page 8]
+Kuehlewind, et al.        Expires June 4, 2017                  [Page 8]
 
-Internet-Draft              PLUS Statefulness              November 2016
+Internet-Draft              PLUS Statefulness              December 2016
 
 
    association signal, it generates an echo token from the association
@@ -501,10 +501,12 @@ Internet-Draft              PLUS Statefulness              November 2016
 
 
 
-Kuehlewind, et al.        Expires June 3, 2017                  [Page 9]
+Kuehlewind, et al.        Expires June 4, 2017                  [Page 9]
 
-Internet-Draft              PLUS Statefulness              November 2016
+Internet-Draft              PLUS Statefulness              December 2016
 
+
+   Note that sending a packet without a stop signal on the reverse
 
 4.3.  Stop Signaling
 
@@ -537,7 +539,33 @@ Internet-Draft              PLUS Statefulness              November 2016
    token, which can be verified both by the far endpoint and devices on
    path which have cached the stop hash to be authentic.
 
+4.4.  Separate Utility
+
+   Although all of these signals are required to drive the state machine
+   described by this document, note that association/confirmation and
+   stop signaling have separate utility.  A transport protocol may
+   expose the end of a flow without any proof of association or
+   confirmation of return routability of the initiator.  Alternately,
+   the transport protocol could rely on short timeouts to clean up stale
+   state on path, while exposing continuous association and confirmation
+   signals to quickly reestablish state.
+
+
+
+
+
+
+
+
+Kuehlewind, et al.        Expires June 4, 2017                 [Page 10]
+
+Internet-Draft              PLUS Statefulness              December 2016
+
+
 5.  Deployment Considerations
+
+   [EDITOR'S NOTE: discuss incentives for deployment for signals
+   separately here]
 
    The state machine defined in this document is most useful when
    implemented in a single instantiation (wire format for signals, and
@@ -551,16 +579,6 @@ Internet-Draft              PLUS Statefulness              November 2016
 
    The following subsections discuss incentives for deployment of this
    state machine both at middleboxes and at endpoints.
-
-
-
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                 [Page 10]
-
-Internet-Draft              PLUS Statefulness              November 2016
-
 
 5.1.  Middlebox Deployment
 
@@ -592,6 +610,14 @@ Internet-Draft              PLUS Statefulness              November 2016
    While both of these advantages require middleboxes on path to
    recognize and use the signals driving this state machine, we note
    that content providers driving the deployment of this protocols are
+
+
+
+Kuehlewind, et al.        Expires June 4, 2017                 [Page 11]
+
+Internet-Draft              PLUS Statefulness              December 2016
+
+
    also operators of their own content provision networks, and that many
    of the benefits of encrypted- encapsulated transport firewalls will
    accrue to them, giving these content providers incentives to deploy
@@ -610,14 +636,6 @@ Internet-Draft              PLUS Statefulness              November 2016
 
    TCP [RFC0793] provides start-of-flow association only.  A packet with
    the SYN and ACK flags set in the absence of the FIN or RST flags, and
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                 [Page 11]
-
-Internet-Draft              PLUS Statefulness              November 2016
-
-
    an in-window acknowledgment number, is synonymous with the
    association signal.  A packet with the ACK flag set in the absence of
    the FIN or RST flags after an initial SYN, and an in-window
@@ -649,6 +667,13 @@ Internet-Draft              PLUS Statefulness              November 2016
    transport protocol providing full integrity protection for its
    headers end-to-end.
 
+
+
+Kuehlewind, et al.        Expires June 4, 2017                 [Page 12]
+
+Internet-Draft              PLUS Statefulness              December 2016
+
+
 6.2.  Signal mapping for QUIC
 
    QUIC [I-D.hamilton-quic-transport-protocol] is a moving target;
@@ -666,13 +691,6 @@ Internet-Draft              PLUS Statefulness              November 2016
    QUIC mailing list; one proposal for self-authenticating public reset
    inspired the addition of a comparable mechanism to Section 4.3 of
    this document.
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                 [Page 12]
-
-Internet-Draft              PLUS Statefulness              November 2016
-
 
 7.  IANA Considerations
 
@@ -703,6 +721,15 @@ Internet-Draft              PLUS Statefulness              November 2016
    This work is partially supported by the European Commission under
    Horizon 2020 grant agreement no. 688421 Measurement and Architecture
    for a Middleboxed Internet (MAMI), and by the Swiss State Secretariat
+
+
+
+
+Kuehlewind, et al.        Expires June 4, 2017                 [Page 13]
+
+Internet-Draft              PLUS Statefulness              December 2016
+
+
    for Education, Research, and Innovation under contract no. 15.0268.
    This support does not imply endorsement.
 
@@ -720,15 +747,6 @@ Internet-Draft              PLUS Statefulness              November 2016
               Protocol for the Exchange of Flow Information", STD 77,
               RFC 7011, DOI 10.17487/RFC7011, September 2013,
               <http://www.rfc-editor.org/info/rfc7011>.
-
-
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                 [Page 13]
-
-Internet-Draft              PLUS Statefulness              November 2016
-
 
    [RFC7398]  Bagnulo, M., Burbridge, T., Crawford, S., Eardley, P., and
               A. Morton, "A Reference Path and Measurement Points for
@@ -757,6 +775,17 @@ Internet-Draft              PLUS Statefulness              November 2016
               Security (TLS) to Secure QUIC", draft-thomson-quic-tls-01
               (work in progress), October 2016.
 
+
+
+
+
+
+
+Kuehlewind, et al.        Expires June 4, 2017                 [Page 14]
+
+Internet-Draft              PLUS Statefulness              December 2016
+
+
    [IMC-GATEWAYS]
               Hatonen, S., Nyrhinen, A., Eggert, L., Strowes, S.,
               Sarolahti, P., and M. Kojo, "An experimental study of home
@@ -776,15 +805,6 @@ Internet-Draft              PLUS Statefulness              November 2016
               Field) in the IPv4 and IPv6 Headers", RFC 2474,
               DOI 10.17487/RFC2474, December 1998,
               <http://www.rfc-editor.org/info/rfc2474>.
-
-
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                 [Page 14]
-
-Internet-Draft              PLUS Statefulness              November 2016
-
 
    [RFC7675]  Perumal, M., Wing, D., Ravindranath, R., Reddy, T., and M.
               Thomson, "Session Traversal Utilities for NAT (STUN) Usage
@@ -817,24 +837,4 @@ Authors' Addresses
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Kuehlewind, et al.        Expires June 3, 2017                 [Page 15]
+Kuehlewind, et al.        Expires June 4, 2017                 [Page 15]
