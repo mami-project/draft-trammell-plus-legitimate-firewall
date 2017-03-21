@@ -5,12 +5,12 @@
 Network Working Group                                      M. Kuehlewind
 Internet-Draft                                               B. Trammell
 Intended status: Informational                                ETH Zurich
-Expires: June 25, 2017                                     J. Hildebrand
-                                                       December 22, 2016
+Expires: September 22, 2017                                J. Hildebrand
+                                                          March 21, 2017
 
 
            Transport-Independent Path Layer State Management
-                  draft-trammell-plus-statefulness-02
+                  draft-trammell-plus-statefulness-03
 
 Abstract
 
@@ -38,11 +38,11 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on June 25, 2017.
+   This Internet-Draft will expire on September 22, 2017.
 
 Copyright Notice
 
-   Copyright (c) 2016 IETF Trust and the persons identified as the
+   Copyright (c) 2017 IETF Trust and the persons identified as the
    document authors.  All rights reserved.
 
    This document is subject to BCP 78 and the IETF Trust's Legal
@@ -53,9 +53,9 @@ Copyright Notice
 
 
 
-Kuehlewind, et al.        Expires June 25, 2017                 [Page 1]
+Kuehlewind, et al.     Expires September 22, 2017               [Page 1]
 
-Internet-Draft              PLUS Statefulness              December 2016
+Internet-Draft              PLUS Statefulness                 March 2017
 
 
    to this document.  Code Components extracted from this document must
@@ -74,8 +74,9 @@ Table of Contents
    4.  Abstract Signaling Mechanisms . . . . . . . . . . . . . . . .   8
      4.1.  Flow Identification . . . . . . . . . . . . . . . . . . .   9
      4.2.  Association and Confirmation Signaling  . . . . . . . . .   9
+       4.2.1.  Start-of-flow versus continual signaling  . . . . . .  10
      4.3.  Bidirectional Stop Signaling  . . . . . . . . . . . . . .  11
-       4.3.1.  Authenticated Stop Signaling  . . . . . . . . . . . .  11
+       4.3.1.  Authenticated Stop Signaling  . . . . . . . . . . . .  12
      4.4.  Separate Utility  . . . . . . . . . . . . . . . . . . . .  12
    5.  Deployment Considerations . . . . . . . . . . . . . . . . . .  12
      5.1.  Middlebox Deployment  . . . . . . . . . . . . . . . . . .  12
@@ -83,7 +84,7 @@ Table of Contents
    6.  Signal mappings for transport protocols . . . . . . . . . . .  13
      6.1.  Signal mapping for TCP  . . . . . . . . . . . . . . . . .  13
      6.2.  Signal mapping for QUIC . . . . . . . . . . . . . . . . .  14
-   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  14
+   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  15
    8.  Security Considerations . . . . . . . . . . . . . . . . . . .  15
    9.  Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .  15
    10. References  . . . . . . . . . . . . . . . . . . . . . . . . .  15
@@ -105,15 +106,15 @@ Table of Contents
    model the TCP state machine to distinguish packets belonging from
    desirable flows from backscatter and random attack traffic, and
    devices which keep per-flow state for reporting and monitoring
-   purposes (e.g.  IPFIX [RFC7011] Metering Processes), has broken this
 
 
 
-Kuehlewind, et al.        Expires June 25, 2017                 [Page 2]
+Kuehlewind, et al.     Expires September 22, 2017               [Page 2]
 
-Internet-Draft              PLUS Statefulness              December 2016
+Internet-Draft              PLUS Statefulness                 March 2017
 
 
+   purposes (e.g.  IPFIX [RFC7011] Metering Processes), has broken this
    assumption, and made it more difficult to deploy non-TCP transport
    protocols in the Internet.
 
@@ -160,15 +161,17 @@ Internet-Draft              PLUS Statefulness              December 2016
        address) or transport layer header fields (e.g., destination port
        number) that the device has access to;
 
+
+
+
+
+Kuehlewind, et al.     Expires September 22, 2017               [Page 3]
+
+Internet-Draft              PLUS Statefulness                 March 2017
+
+
    2.  one or more characteristics of the packet itself (e.g., number of
        MPLS labels, etc.);
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                 [Page 3]
-
-Internet-Draft              PLUS Statefulness              December 2016
-
 
    3.  one or more of the fields derived from packet treatment at the
        device (e.g., next-hop IP address, the output interface, etc.).
@@ -218,22 +221,19 @@ Internet-Draft              PLUS Statefulness              December 2016
 
 
 
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                 [Page 4]
+Kuehlewind, et al.     Expires September 22, 2017               [Page 4]
 
-Internet-Draft              PLUS Statefulness              December 2016
+Internet-Draft              PLUS Statefulness                 March 2017
 
 
    o  associated: a flow in associating state has further demonstrated
       that the initial sender can receive packets at its given source
       address.
 
-   o  half-close: one side of a connection has sent an explicit stop
+   o  stop-wait: one side of a connection has sent an explicit stop
       signal, waiting for confirmation
 
-   o  closing: stop signal confirmed, association is closing.
+   o  stopping: stop signal confirmed, association is stopping.
 
    We refer to the zero and uniflow states as "uniflow states", as they
    are relevant both for truly unidirectional flows, as well as in
@@ -277,9 +277,9 @@ Internet-Draft              PLUS Statefulness              December 2016
 
 
 
-Kuehlewind, et al.        Expires June 25, 2017                 [Page 5]
+Kuehlewind, et al.     Expires September 22, 2017               [Page 5]
 
-Internet-Draft              PLUS Statefulness              December 2016
+Internet-Draft              PLUS Statefulness                 March 2017
 
 
        `- - - - - - - - - - - - - - - - - - - - - - - - - - - -'
@@ -306,15 +306,15 @@ Internet-Draft              PLUS Statefulness              December 2016
      |                           V signal
      |                    +============+
      | TO_ASSOCIATED     /              \<-+
-     +<-----------------(   half-close   ) | any packet
+     +<-----------------(   stop-wait    ) | any packet
      |                   \              /--+
      |                   +============+
      |                    | stop confirmation
      |                    V signal
      |              +============+
-     | TO_CLOSING  /              \
-     +------------(     closing    )
-                   \              /
+     | TO_STOP     /              \<-+
+     +------------(    stopping    ) | any packet
+                   \              /--+
                     +============+
 
     Figure 1: Transport-Independent State Machine for Stateful On-Path
@@ -333,19 +333,20 @@ Internet-Draft              PLUS Statefulness              December 2016
 
 
 
-Kuehlewind, et al.        Expires June 25, 2017                 [Page 6]
+Kuehlewind, et al.     Expires September 22, 2017               [Page 6]
 
-Internet-Draft              PLUS Statefulness              December 2016
+Internet-Draft              PLUS Statefulness                 March 2017
 
 
-   o  TO_CLOSING is the closing timeout: how long the device will
-      account additional packets to a flow after confirming a close
-      signal, ensuring a reordered close signal doesn't create a new
-      flow.
+   o  TO_STOP is the teardown timeout: how long the device will account
+      additional packets to a flow after confirming a close signal,
+      ensuring retransmitted and/or reordered close signal don't lead to
+      the spurious creation of new flow state.
 
    Selection of timeouts is a configuration and implementation detail,
-   but generally TO_CLOSING <= TO_IDLE << TO_ASSOCIATED; see
-   [IMC-GATEWAYS].
+   but generally TO_STOP <= TO_IDLE << TO_ASSOCIATED; see [IMC-GATEWAYS]
+   for an analysis of the magnitudes of these timeouts in presently
+   deployed gateway devices.
 
 3.1.  Uniflow States
 
@@ -359,8 +360,9 @@ Internet-Draft              PLUS Statefulness              December 2016
    uniflow state.  When timer TO_IDLE expires on a flow in the uniflow
    state, the device drops state for the flow and performs any
    processing associated with doing so: tearing down NAT bindings,
-   closing associated firewall pinholes, exporting flow information, and
-   so on.  The device may also drop state on a stop signal, if observed.
+   stopping associated firewall pinholes, exporting flow information,
+   and so on.  The device may also drop state on a stop signal, if
+   observed.
 
    Some devices will only see one side of a communication, e.g. if they
    are placed in a portion of a network with asymmetric routing.  These
@@ -384,22 +386,23 @@ Internet-Draft              PLUS Statefulness              December 2016
    timer TO_ASSOCIATED.  It resets this timer for any packet it forwards
    in either direction.  The associated state represents a fully
    established bidirectional communication.  When timer TO_ASSOCIATED
+
+
+
+Kuehlewind, et al.     Expires September 22, 2017               [Page 7]
+
+Internet-Draft              PLUS Statefulness                 March 2017
+
+
    expires, the device assumes that the flow has shut down without
    signaling as such, and drops state for the flow, performing any
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                 [Page 7]
-
-Internet-Draft              PLUS Statefulness              December 2016
-
-
    associated processing.  When a bidirectional stop signal (see
-   Section 4.3) is confirmed, the flow transitions to the closing state.
+   Section 4.3) is confirmed, the flow transitions to the stopping
+   state.
 
-   When a flow enters the closing state, it starts a timer TO_CLOSING.
+   When a flow enters the stopping state, it starts a timer TO_STOP.
    While the stop signal should be the last packet on a flow, the
-   TO_CLOSING timer ensures that reordered packets after the stop signal
+   TO_STOP timer ensures that reordered packets after the stop signal
    will be accounted to the flow.  When this timer expires, the device
    drops state for the flow, performing any associated processing.
 
@@ -442,12 +445,9 @@ Internet-Draft              PLUS Statefulness              December 2016
 
 
 
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                 [Page 8]
+Kuehlewind, et al.     Expires September 22, 2017               [Page 8]
 
-Internet-Draft              PLUS Statefulness              December 2016
+Internet-Draft              PLUS Statefulness                 March 2017
 
 
 4.1.  Flow Identification
@@ -501,9 +501,9 @@ Internet-Draft              PLUS Statefulness              December 2016
 
 
 
-Kuehlewind, et al.        Expires June 25, 2017                 [Page 9]
+Kuehlewind, et al.     Expires September 22, 2017               [Page 9]
 
-Internet-Draft              PLUS Statefulness              December 2016
+Internet-Draft              PLUS Statefulness                 March 2017
 
 
    The initiating endpoint sends a confirmation signal on the next
@@ -516,17 +516,6 @@ Internet-Draft              PLUS Statefulness              December 2016
    and recognize that an association token corresponds to a previously
    seen echo token and confirmation nonce to recognize an association
    signal.
-
-   These signals could be exposed on only first few packets of a
-   connection (those corresponding to the cryptographic and/or transport
-   state handshakes in the overlying protocols).  In this case, an on-
-   path device would need to observe the start of the flow to establish
-   state.  They could also be present on every packet in the flow,
-   allowing state to be re-established even in the middle of a flow with
-   longer idle periods than the TO_ESTABLISHED timeout value.  In this
-   case, the series of exposed association tokens, echo tokens, and
-   confirmation nonces can be observed to derive a running round-trip
-   time estimate for the flow.
 
    If the association token and confirmation nonce are predictable, off-
    path devices can spoof association and confirmation signals.  In
@@ -551,33 +540,52 @@ Internet-Draft              PLUS Statefulness              December 2016
    must choose a set of functions, or mechanism for unambiguously
    choosing one, at both endpoints as well as along the path.
 
+4.2.1.  Start-of-flow versus continual signaling
+
+   There are two possible points in the design space here: these signals
+   could be continually exposed throughout the flow, or could be exposed
+   only on the first few packets of a connection (those corresponding to
+   the cryptographic and/or transport state handshakes in the overlying
+   protocols).
+
+   In the former case, an on-path device could re-establish state in the
+   middle of a flow; e.g. due to a reboot of the device, due to a NAT
+   association change without the endpoints' knowledge, or due to idle
+   periods longer than the TO_ESTABLISHED timeout value.  The on-path
+   device would receive no special information about which packets were
+   associated with the start of association.  In this case, the series
 
 
 
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                [Page 10]
+Kuehlewind, et al.     Expires September 22, 2017              [Page 10]
 
-Internet-Draft              PLUS Statefulness              December 2016
+Internet-Draft              PLUS Statefulness                 March 2017
 
+
+   of exposed association tokens, echo tokens, and confirmation nonces
+   can also be observed to derive a running round-trip time estimate for
+   the flow.
+
+   In the latter case, an on-path device would need to observe the start
+   of the flow to establish state, and would be able to distinguish
+   connection-start packets from other packets.
 
 4.3.  Bidirectional Stop Signaling
 
    The transport-independent state machine uses bidirectional stop
    signaling to tear down state.  This requires a stop signal to be
    observed in one direction, and a stop confirmation signal to be
-   observed in the other, to complete closing an association.
+   observed in the other, to complete tearing down an association.
 
    A stop signal is directly carried or otherwise encoded in the
    protocol header to indicate that a flow is ending, whether normally
    or abnormally, and that state associated with the flow should be torn
    down.  Upon decoding a stop signal, a device on path should move the
-   flow from uniflow state to zero, or from associated state to half-
-   close state, to wait for a confirmation signal in the other
-   direction.  While in half-close state, state will be maintained until
-   a timer set to TO_ASSOCIATED expires, with any packet forwarded in
-   either direction reseting the timer.
+   flow from uniflow state to zero, or from associated state to stop-
+   wait state, to wait for a confirmation signal in the other direction.
+   While in stop-wait state, state will be maintained until a timer set
+   to TO_ASSOCIATED expires, with any packet forwarded in either
+   direction reseting the timer.
 
    A stop confirmation signal is directly carried or otherwise encoded
    in the protocol header to indicate that the endpoint receiving the
@@ -585,22 +593,33 @@ Internet-Draft              PLUS Statefulness              December 2016
    confirmation signal contains some assurance that the far endpoint has
    seen the stop signal.  When a stop confirmation signal is observed in
    the opposite direction from the stop signal, a device on path should
-   move the flow from half-close state to closing state.  The flow will
-   then remain in closing state until a timer set to TO_CLOSING has
-   expired, after which state for the flow will be dropped.  The closing
-   timeout TO_CLOSING is intended to ensure that any packets reordered
-   in delivery are accounted to the flow before state for it is dropped.
+   move the flow from stop-wait state to stopping state.  The flow will
+   then remain in stopping state until a timer set to TO_STOP has
+   expired, after which state for the flow will be dropped.  The
+   stopping timeout TO_STOP is intended to ensure that any packets
+   reordered in delivery are accounted to the flow before state for it
+   is dropped.
 
    We assume the encoding of stop and stop confirmation signals into a
    packet header, as with all other signals, is integrity protected end-
-   to-end.  Stop signals, as association signals, could be forged by one
-   on-path device.  However, unless a stop confirmation signal that can
-   be associated with the stop signal is observed in the other
-   direction, the flow remains in half-close state, during which state
-   is maintained and packets continue to be forwarded in both
-   directions.  So this attack is of limited utility unless an attacker
-   controls two on-path devices on either side of a target device to
-   spoof both stop and corresponding stop confirmation signals.
+   to-end.  Stop signals, as association signals, could be forged by a
+   single on-path device.  However, unless a stop confirmation signal
+   that can be associated with the stop signal is observed in the other
+   direction, the flow remains in stop-wait state, during which state is
+   maintained and packets continue to be forwarded in both directions.
+   So this attack is of limited utility; an attacker wishing to inject
+   state teardown would need to control at least one on-path device on
+
+
+
+
+Kuehlewind, et al.     Expires September 22, 2017              [Page 11]
+
+Internet-Draft              PLUS Statefulness                 March 2017
+
+
+   each side of a target device to spoof both stop and corresponding
+   stop confirmation signals.
 
 4.3.1.  Authenticated Stop Signaling
 
@@ -610,14 +629,6 @@ Internet-Draft              PLUS Statefulness              December 2016
    chosen cryptographic hash function applied to a stop token which that
    endpoint keeps secret.  An endpoint wishing to end the association
    then reveals the stop token, which can be verified both by the far
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                [Page 11]
-
-Internet-Draft              PLUS Statefulness              December 2016
-
-
    endpoint and devices on path which have cached the stop hash to be
    authentic.  A stop confirmation signal additionally contains
    information derived from the initiating stop signal's stop token, as
@@ -655,24 +666,20 @@ Internet-Draft              PLUS Statefulness              December 2016
    tracking for firewalls and NAT devices.  When encrypted transport
    protocols encapsulated in UDP adopt a set of signals and a wire
    format for those signals to drive this state machine, these
+
+
+
+Kuehlewind, et al.     Expires September 22, 2017              [Page 12]
+
+Internet-Draft              PLUS Statefulness                 March 2017
+
+
    middleboxes could continue using TCP-like logic to handle those UDP
    flows.  Recognizing the wire format used by those signals would allow
    these middleboxes to distinguish "UDP with an encrypted transport"
    from undifferentiated UDP, and to treat the former case more like
    TCP, providing longer timeouts for established flows, as well as
    stateful defense against spoofed or reflected garbage traffic.
-
-
-
-
-
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                [Page 12]
-
-Internet-Draft              PLUS Statefulness              December 2016
-
 
 5.2.  Endpoint Deployment
 
@@ -715,6 +722,14 @@ Internet-Draft              PLUS Statefulness              December 2016
    acknowledgment number, is synonymous with the confirmation signal.
    For a typical TCP flow:
 
+
+
+
+Kuehlewind, et al.     Expires September 22, 2017              [Page 13]
+
+Internet-Draft              PLUS Statefulness                 March 2017
+
+
    1.  The initial SYN places the flow into uniflow state,
 
    2.  The SYN-ACK sent in reply acts as a association signal and places
@@ -723,17 +738,10 @@ Internet-Draft              PLUS Statefulness              December 2016
    3.  The ACK sent in reply acts as a confirmation signal and places
        the flow into associated state,
 
-
-
-Kuehlewind, et al.        Expires June 25, 2017                [Page 13]
-
-Internet-Draft              PLUS Statefulness              December 2016
-
-
    4.  The final FIN is a stop signal, and
 
    5.  the ACK of the final FIN is a stop confirmation signal, moving
-       the flow into closing state.
+       the flow into stopping state.
 
    Note that abormally closed flows (with RST) do not provide stop
    confirmation, and are therefore not provided for by this state
@@ -756,35 +764,34 @@ Internet-Draft              PLUS Statefulness              December 2016
    protocol's design and could easily be added to the protocol
    specification.
 
-   Specifically, as of this writing, QUIC's 64-bit connection ID,
-   together with integrity protection of the connection ID provided by
-   QUIC's cryptographic protocol [I-D.ietf-quic-tls], could be used as
-   an association and echo token as in Section 4.2.  A mechanism
-   equivalent to the confirmation nonce is presently missing and would
-   have to be added.  Note that adding monotonically increasing,
-   initially-random packet serial numbers, as well as echo of the last
-   packet serial number seen, to the QUIC packet header, would provide
-   an equivalent mechanism, allowing a confirmation signal to be derived
-   from the echo of a previously seen association signal's serial
-   number.
+   Specifically, QUIC's handshake is visible to on-path devices, as it
+   begins with an unencrypted version negotiation which exposes a 64-bit
+   connection ID, which can serve as an association and echo token as in
+   Section 4.2.  The function of the confirmation nonce is not fully
+   exposed to the path at this point, but could be implemented by
+   exposing information from the proof of source address ownership
+   (section 7.4 of [I-D.ietf-quic-transport]) or via echoing the random
+   initial packet number (as suggested by https://github.com/quicwg/
+   base-drafts/pull/391).
 
    The addition of a public reset signal that would act as a stop signal
-   as in Section 4.3 is presently under discussion on the QUIC mailing
-   list; one proposal for self-authenticating public reset inspired the
-   addition of Section 4.3.1 to this document.
+   as in Section 4.3 is presently under discussion within the QUIC
+   working group; the proposal for self-authenticating public reset at
+
+
+
+
+Kuehlewind, et al.     Expires September 22, 2017              [Page 14]
+
+Internet-Draft              PLUS Statefulness                 March 2017
+
+
+   https://github.com/quicwg/base-drafts/pull/20 inspired the addition
+   of Section 4.3.1 to this document.
 
 7.  IANA Considerations
 
    This document has no actions for IANA.
-
-
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                [Page 14]
-
-Internet-Draft              PLUS Statefulness              December 2016
-
 
 8.  Security Considerations
 
@@ -823,6 +830,18 @@ Internet-Draft              PLUS Statefulness              December 2016
               DOI 10.17487/RFC5103, January 2008,
               <http://www.rfc-editor.org/info/rfc5103>.
 
+
+
+
+
+
+
+
+Kuehlewind, et al.     Expires September 22, 2017              [Page 15]
+
+Internet-Draft              PLUS Statefulness                 March 2017
+
+
    [RFC7011]  Claise, B., Ed., Trammell, B., Ed., and P. Aitken,
               "Specification of the IP Flow Information Export (IPFIX)
               Protocol for the Exchange of Flow Information", STD 77,
@@ -835,13 +854,6 @@ Internet-Draft              PLUS Statefulness              December 2016
               RFC 7398, DOI 10.17487/RFC7398, February 2015,
               <http://www.rfc-editor.org/info/rfc7398>.
 
-
-
-Kuehlewind, et al.        Expires June 25, 2017                [Page 15]
-
-Internet-Draft              PLUS Statefulness              December 2016
-
-
 10.2.  Informative References
 
    [draft-trammell-plus-abstract-mech]
@@ -853,14 +865,14 @@ Internet-Draft              PLUS Statefulness              December 2016
               (work in progress), October 2016.
 
    [I-D.ietf-quic-tls]
-              Thomson, M. and (. (Unknown), "Using Transport Layer
-              Security (TLS) to Secure QUIC", draft-ietf-quic-tls-00
-              (work in progress), November 2016.
+              Thomson, M. and S. Turner, "Using Transport Layer Security
+              (TLS) to Secure QUIC", draft-ietf-quic-tls-02 (work in
+              progress), March 2017.
 
    [I-D.ietf-quic-transport]
               Iyengar, J. and M. Thomson, "QUIC: A UDP-Based Multiplexed
-              and Secure Transport", draft-ietf-quic-transport-00 (work
-              in progress), November 2016.
+              and Secure Transport", draft-ietf-quic-transport-02 (work
+              in progress), March 2017.
 
    [IMC-GATEWAYS]
               Hatonen, S., Nyrhinen, A., Eggert, L., Strowes, S.,
@@ -876,6 +888,16 @@ Internet-Draft              PLUS Statefulness              December 2016
               RFC 793, DOI 10.17487/RFC0793, September 1981,
               <http://www.rfc-editor.org/info/rfc793>.
 
+
+
+
+
+
+Kuehlewind, et al.     Expires September 22, 2017              [Page 16]
+
+Internet-Draft              PLUS Statefulness                 March 2017
+
+
    [RFC2474]  Nichols, K., Blake, S., Baker, F., and D. Black,
               "Definition of the Differentiated Services Field (DS
               Field) in the IPv4 and IPv6 Headers", RFC 2474,
@@ -886,17 +908,6 @@ Internet-Draft              PLUS Statefulness              December 2016
               Thomson, "Session Traversal Utilities for NAT (STUN) Usage
               for Consent Freshness", RFC 7675, DOI 10.17487/RFC7675,
               October 2015, <http://www.rfc-editor.org/info/rfc7675>.
-
-
-
-
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                [Page 16]
-
-Internet-Draft              PLUS Statefulness              December 2016
-
 
 Authors' Addresses
 
@@ -938,15 +949,4 @@ Authors' Addresses
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-Kuehlewind, et al.        Expires June 25, 2017                [Page 17]
+Kuehlewind, et al.     Expires September 22, 2017              [Page 17]
