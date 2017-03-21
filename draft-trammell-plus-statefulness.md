@@ -1,7 +1,7 @@
 ---
 title: Transport-Independent Path Layer State Management
 abbrev: PLUS Statefulness
-docname: draft-trammell-plus-statefulness-02
+docname: draft-trammell-plus-statefulness-03
 date:
 category: info
 
@@ -206,8 +206,8 @@ defined as follows:
   been seen in the other direction.
 - associated: a flow in associating state has further demonstrated that the 
   initial sender can receive packets at its given source address.
-- half-close: one side of a connection has sent an explicit stop signal, waiting for confirmation
-- closing: stop signal confirmed, association is closing. 
+- stop-wait: one side of a connection has sent an explicit stop signal, waiting for confirmation
+- stopping: stop signal confirmed, association is stopping. 
 
 We refer to the zero and uniflow states as "uniflow states", as they are
 relevant both for truly unidirectional flows, as well as in situations where
@@ -242,15 +242,15 @@ communication.
   |                           V signal       
   |                    +============+  
   | TO_ASSOCIATED     /              \<-+     
-  +<-----------------(   half-close   ) | any packet
+  +<-----------------(   stop-wait    ) | any packet
   |                   \              /--+          
   |                   +============+       
   |                    | stop confirmation
   |                    V signal
   |              +============+
-  | TO_CLOSING  /              \
-  +------------(     closing    )
-                \              /
+  | TO_STOP     /              \<-+
+  +------------(    stopping    ) | any packet
+                \              /--+
                  +============+
 ~~~~~~~~~~~~~
 {: #fig-states title="Transport-Independent State Machine for Stateful On-Path Devices"}
@@ -264,12 +264,11 @@ The three timeouts are defined as follows:
 - TO_ASSOCIATED, the bidirectional idle timeout, can be considered equivalent
   to the timeout for transport protocols where the device has information
   about session start and end (e.g. TCP).
-- TO_CLOSING is the closing timeout: how long the device will account
-  additional packets to a flow after confirming a close signal, ensuring a
-  reordered close signal doesn't create a new flow.
+- TO_STOP is the teardown timeout: how long the device will account
+  additional packets to a flow after confirming a close signal, ensuring retransmitted and/or reordered close signal don't lead to the spurious creation of new flow state.
 
 Selection of timeouts is a configuration and implementation detail, but
-generally TO_CLOSING <= TO_IDLE << TO_ASSOCIATED; see {{IMC-GATEWAYS}}.
+generally TO_STOP <= TO_IDLE << TO_ASSOCIATED; see {{IMC-GATEWAYS}} for an analysis of the magnitudes of these timeouts in presently deployed gateway devices.
 
 ## Uniflow States
 
@@ -278,10 +277,10 @@ packet with a flow (see {{flow-identification}}). When a device receives a
 packet associated with a flow it has no state for, and it is configured to
 forward the packet instead of dropping it, it moves that flow from the zero
 state into the uniflow state and starts a timer TO_IDLE. It resets this timer
-for any additional packet it forwards in the same direction as long as the
-flow remains in the uniflow state. When timer TO_IDLE expires on a flow in the
+for any additional packet it forwards in the same direction as long as the flow
+remains in the uniflow state. When timer TO_IDLE expires on a flow in the
 uniflow state, the device drops state for the flow and performs any processing
-associated with doing so: tearing down NAT bindings, closing associated
+associated with doing so: tearing down NAT bindings, stopping associated
 firewall pinholes, exporting flow information, and so on. The device may also
 drop state on a stop signal, if observed.
 
@@ -310,10 +309,10 @@ direction. The associated state represents a fully established bidirectional
 communication. When timer TO_ASSOCIATED expires, the device assumes that the
 flow has shut down without signaling as such, and drops state for the flow,
 performing any associated processing. When a bidirectional stop signal (see
-{{stop-signaling}}) is confirmed, the flow transitions to the closing state.
+{{stop-signaling}}) is confirmed, the flow transitions to the stopping state.
 
-When a flow enters the closing state, it starts a timer TO_CLOSING. While the
-stop signal should be the last packet on a flow, the TO_CLOSING timer ensures
+When a flow enters the stopping state, it starts a timer TO_STOP. While the
+stop signal should be the last packet on a flow, the TO_STOP timer ensures
 that reordered packets after the stop signal will be accounted to the flow.
 When this timer expires, the device drops state for the flow, performing any
 associated processing.
@@ -404,16 +403,6 @@ association token to recognize an association signal, and recognize that an
 association token corresponds to a previously seen echo token and confirmation
 nonce to recognize an association signal.
 
-These signals could be exposed on only first few packets of a connection
-(those corresponding to the cryptographic and/or transport state handshakes in
-the overlying protocols). In this case, an on-path device would need to
-observe the start of the flow to establish state. They could also be present
-on every packet in the flow, allowing state to be re-established even in the
-middle of a flow with longer idle periods than the TO_ESTABLISHED timeout
-value. In this case, the series of exposed association tokens, echo tokens,
-and confirmation nonces can be observed to derive a running round-trip time
-estimate for the flow.
-
 If the association token and confirmation nonce are predictable, off-path
 devices can spoof association and confirmation signals. In choosing the number
 of bits for an association token, there is a tradeoff between per-packet
@@ -436,19 +425,38 @@ association and confirmation signaling must choose a set of functions, or
 mechanism for unambiguously choosing one, at both endpoints as well as along
 the path.
 
+### Start-of-flow versus continual signaling
+
+There are two possible points in the design space here: these signals could be
+continually exposed throughout the flow, or could be exposed only on the first
+few packets of a connection (those corresponding to the cryptographic and/or
+transport state handshakes in the overlying protocols). 
+
+In the former case, an
+on-path device could re-establish state in the middle of a flow; e.g. due to a
+reboot of the device, due to a NAT association change without the endpoints'
+knowledge, or due to idle periods longer than the TO_ESTABLISHED timeout value.
+The on-path device would receive no special information about which packets were
+associated with the start of association. In this case, the series of exposed
+association tokens, echo tokens, and confirmation nonces can also be observed to
+derive a running round-trip time estimate for the flow.
+
+In the latter case, an on-path
+device would need to observe the start of the flow to establish state, and would be able to distinguish connection-start packets from other packets. 
+
 ## Bidirectional Stop Signaling {#stop-signaling}
 
 The transport-independent state machine uses bidirectional stop signaling to
 tear down state. This requires a stop signal to be observed in one direction,
 and a stop confirmation signal to be observed in the other, to complete
-closing an association. 
+tearing down an association. 
 
 A stop signal is directly carried or otherwise encoded in the protocol header
 to indicate that a flow is ending, whether normally or abnormally, and that
 state associated with the flow should be torn down. Upon decoding a stop
 signal, a device on path should move the flow from uniflow state to zero, or
-from associated state to half-close state, to wait for a confirmation signal
-in the other direction. While in half-close state, state will be maintained
+from associated state to stop-wait state, to wait for a confirmation signal
+in the other direction. While in stop-wait state, state will be maintained
 until a timer set to TO_ASSOCIATED expires, with any packet forwarded in
 either direction reseting the timer.
 
@@ -457,21 +465,21 @@ protocol header to indicate that the endpoint receiving the stop signal
 confirms that the stop signal is valid. The stop confirmation signal 
 contains some assurance that the far endpoint has seen the stop signal. When a
 stop confirmation signal is observed in the opposite direction from the stop
-signal, a device on path should move the flow from half-close state to closing
-state. The flow will then remain in closing state until a timer set to
-TO_CLOSING has expired, after which state for the flow will be dropped. The
-closing timeout TO_CLOSING is intended to ensure that any packets reordered in
+signal, a device on path should move the flow from stop-wait state to stopping
+state. The flow will then remain in stopping state until a timer set to
+TO_STOP has expired, after which state for the flow will be dropped. The
+stopping timeout TO_STOP is intended to ensure that any packets reordered in
 delivery are accounted to the flow before state for it is dropped.
 
 We assume the encoding of stop and stop confirmation signals into a packet
 header, as with all other signals, is integrity protected end-to-end. Stop
-signals, as association signals, could be forged by one on-path device.
-However, unless a stop confirmation signal that can be associated with the
-stop signal is observed in the other direction, the flow remains in half-close
-state, during which state is maintained and packets continue to be forwarded
-in both directions. So this attack is of limited utility unless an attacker
-controls two on-path devices on either side of a target device to spoof both
-stop and corresponding stop confirmation signals.
+signals, as association signals, could be forged by a single on-path device.
+However, unless a stop confirmation signal that can be associated with the stop
+signal is observed in the other direction, the flow remains in stop-wait state,
+during which state is maintained and packets continue to be forwarded in both
+directions. So this attack is of limited utility; an attacker wishing to inject
+state teardown would need to control at least one on-path device on each side of
+a target device to spoof both stop and corresponding stop confirmation signals.
 
 ### Authenticated Stop Signaling
 
@@ -532,15 +540,17 @@ state establishment possible with some instantiations of the association and
 confirmation signals, would allow these transport protocols to send less
 unproductive keepalive traffic for long-lived, sparse flows.
 
-While both of these advantages require middleboxes on path to recognize and
-use the signals driving this state machine, we note that content providers
-driving the deployment of this protocols are also operators of their own
-content provision networks, and that many of the benefits of encrypted-
-encapsulated transport firewalls will accrue to them, giving these content providers incentives to deploy both endpoints and middleboxes.
+While both of these advantages require middleboxes on path to recognize and use
+the signals driving this state machine, we note that content providers driving
+the deployment of this protocols are also operators of their own content
+provision networks, and that many of the benefits of encrypted- encapsulated
+transport firewalls will accrue to them, giving these content providers
+incentives to deploy both endpoints and middleboxes.
 
 # Signal mappings for transport protocols
 
-We now show how this state machine can be driven by signals available in TCP and QUIC.
+We now show how this state machine can be driven by signals available in TCP and
+QUIC.
 
 ## Signal mapping for TCP
 
@@ -559,11 +569,12 @@ confirmation signal. For a typical TCP flow:
 2. The SYN-ACK sent in reply acts as a association signal and places the flow into associating state,
 3. The ACK sent in reply acts as a confirmation signal and places the flow into associated state,
 3. The final FIN is a stop signal, and
-4. the ACK of the final FIN is a stop confirmation signal, moving the flow into closing state.
+4. the ACK of the final FIN is a stop confirmation signal, moving the flow into stopping state.
 
 Note that abormally closed flows (with RST) do not provide stop confirmation,
-and are therefore not provided for by this state machine. Due to TCP's support for
-half-closed flows, additional state modeling is necessary to extract a stop signal from the final FIN.
+and are therefore not provided for by this state machine. Due to TCP's support
+for half-closed flows, additional state modeling is necessary to extract a stop
+signal from the final FIN.
 
 Note also that the association and stop signals derived from the TCP header
 are not integrity protected, and association and confirmation signals based on
@@ -578,20 +589,20 @@ QUIC {{I-D.ietf-quic-transport}} is a moving target; however,
 signals for driving this state machine are fundamentally compatible with the
 protocol's design and could easily be added to the protocol specification.
 
-Specifically, as of this writing, QUIC's 64-bit connection ID, together with
-integrity protection of the connection ID provided by QUIC's cryptographic
-protocol {{I-D.ietf-quic-tls}}, could be used as an association and echo token
-as in {{association-and-confirmation-signaling}}. A mechanism equivalent to
-the confirmation nonce is presently missing and would have to be added. Note
-that adding monotonically increasing, initially-random packet serial numbers,
-as well as echo of the last packet serial number seen, to the QUIC packet
-header, would provide an equivalent mechanism, allowing a confirmation signal
-to be derived from the echo of a previously seen association signal's serial
-number.
+Specifically, QUIC's handshake is visible to on-path devices, as it begins with
+an unencrypted version negotiation which exposes a 64-bit connection ID, which
+can serve as an association and echo token as in
+{{association-and-confirmation-signaling}}. The function of the confirmation
+nonce is not fully exposed to the path at this point, but could be implemented
+by exposing information from the proof of source address ownership (section 7.4
+of {{I-D.ietf-quic-transport}}) or via echoing the random initial packet number
+(as suggested by https://github.com/quicwg/base-drafts/pull/391).
 
 The addition of a public reset signal that would act as a stop signal as in
-{{stop-signaling}} is presently under discussion on the QUIC mailing list; one
-proposal for self-authenticating public reset inspired the addition of {{authenticated-stop-signaling}} to this document.
+{{stop-signaling}} is presently under discussion within the QUIC working group;
+the proposal for self-authenticating public reset at
+https://github.com/quicwg/base-drafts/pull/20 inspired the addition of
+{{authenticated-stop-signaling}} to this document.
 
 # IANA Considerations
 
