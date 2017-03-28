@@ -9,4 +9,5 @@
 venv/
 issues.json
 lib
-draft-trammell-plus-legitimate-firewall.md
+
+.targets.mk
