@@ -1,7 +1,7 @@
 ---
 title: Transport-Independent Path Layer State Management
 abbrev: PLUS Statefulness
-docname: draft-trammell-plus-statefulness-03
+docname: draft-trammell-plus-statefulness-04
 date:
 category: info
 
